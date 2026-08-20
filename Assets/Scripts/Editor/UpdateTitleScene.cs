@@ -21,14 +21,14 @@ namespace StarInvader.Editor
             string scenePath = "Assets/Scenes/TitleScene.unity";
             Scene scene = EditorSceneManager.OpenScene(scenePath);
 
-            // 기존 TitleCanvas와 Background 제거 후 재구성
+            // 기존 TitleCanvas와 Background 정리
             GameObject oldCanvas = GameObject.Find("TitleCanvas");
             if (oldCanvas != null) Object.DestroyImmediate(oldCanvas);
 
             GameObject oldBg = GameObject.Find("Background");
             if (oldBg != null) Object.DestroyImmediate(oldBg);
 
-            // 1. Background 재구성
+            // 1. Background 재구성 (우주 은하수 배경)
             SetupBackground();
 
             // 2. TitleCanvas 생성
@@ -44,10 +44,8 @@ namespace StarInvader.Editor
             // EventSystem
             EnsureEventSystem();
 
-            // 3. Title Logo Image
-            string logoPath = "Assets/GameAssets/images/background/title_logo.png";
-            EnsureSpriteImport(logoPath);
-            Sprite logoSprite = AssetDatabase.LoadAssetAtPath<Sprite>(logoPath);
+            // 3. Title Logo Image (검은색 배경 완전 투명화 처리된 스프라이트)
+            Sprite transparentLogoSprite = GetOrCreateTransparentLogoSprite();
 
             GameObject logoObj = new GameObject("TitleLogo");
             logoObj.transform.SetParent(canvasObj.transform, false);
@@ -55,41 +53,47 @@ namespace StarInvader.Editor
             logoRt.anchorMin = new Vector2(0.5f, 0.5f);
             logoRt.anchorMax = new Vector2(0.5f, 0.5f);
             logoRt.pivot = new Vector2(0.5f, 0.5f);
-            logoRt.anchoredPosition = new Vector2(0, 180);
-            logoRt.sizeDelta = new Vector2(460, 220);
+            logoRt.anchoredPosition = new Vector2(0, 190);
+            logoRt.sizeDelta = new Vector2(480, 240);
 
             Image logoImg = logoObj.AddComponent<Image>();
-            logoImg.sprite = logoSprite;
+            logoImg.sprite = transparentLogoSprite;
             logoImg.preserveAspect = true;
 
-            // 4. Information Box Panel (반투명 네온 박스)
+            // 4. Information Box Panel (Pygame 원본과 동일한 둥근 모서리 + 네온 블루 테두리 + 반투명 박스)
+            Sprite neonBoxSprite = GetOrCreateNeonBoxSprite();
+
             GameObject infoBox = new GameObject("InfoBoxPanel");
             infoBox.transform.SetParent(canvasObj.transform, false);
             RectTransform boxRt = infoBox.AddComponent<RectTransform>();
             boxRt.anchorMin = new Vector2(0.5f, 0.5f);
             boxRt.anchorMax = new Vector2(0.5f, 0.5f);
             boxRt.pivot = new Vector2(0.5f, 0.5f);
-            boxRt.anchoredPosition = new Vector2(0, -120);
-            boxRt.sizeDelta = new Vector2(490, 310);
+            boxRt.anchoredPosition = new Vector2(0, -115);
+            boxRt.sizeDelta = new Vector2(500, 310);
 
             Image boxBg = infoBox.AddComponent<Image>();
-            boxBg.color = new Color(0.03f, 0.06f, 0.18f, 0.82f); // 어두운 네온 반투명 블루
+            boxBg.sprite = neonBoxSprite;
+            boxBg.type = Image.Type.Sliced;
+            boxBg.color = Color.white; // 스프라이트 자체에 컬러/알파/테두리가 들어감
 
-            // 박스 내부 텍스트들
-            // 4-1. [ SPACE ] 키를 눌러 출격 (헤더)
-            CreateUIText(infoBox.transform, "HeaderPrompt", "[ SPACE ] 키를 눌러 출격", new Vector2(0, 105), new Vector2(0.5f, 0.5f), 26, Color.white, FontStyle.Bold);
+            // 4-1. [ SPACE ] 키를 눌러 출격 (골드/옐로우 헤더)
+            CreateUIText(infoBox.transform, "HeaderPrompt", "[ SPACE ] 키를 눌러 출격", new Vector2(0, 98), 24, new Color(1.0f, 0.88f, 0.15f), FontStyle.Bold);
 
-            // 4-2. 조작법
-            CreateUIText(infoBox.transform, "ControlText", "조작법: [ ← / → ] 또는 [ A / D ] 키로 좌우 이동", new Vector2(0, 50), new Vector2(0.5f, 0.5f), 18, new Color(0.65f, 0.82f, 1.0f));
+            // 4-2. 조작법 (부드러운 화이트)
+            CreateUIText(infoBox.transform, "ControlText", "조작법: [ ← / → ] 또는 [ A / D ] 키로 좌우 이동", new Vector2(0, 48), 17, new Color(0.88f, 0.93f, 1.0f));
 
-            // 4-3. 사격
-            CreateUIText(infoBox.transform, "ShootText", "사격: [ SPACE ] 키 (레이저 발사음 효과)", new Vector2(0, 10), new Vector2(0.5f, 0.5f), 18, new Color(0.65f, 0.82f, 1.0f));
+            // 4-3. 사격 (네온 스카이블루)
+            CreateUIText(infoBox.transform, "ShootText", "사격: [ SPACE ] 키 (레이저 발사음 효과)", new Vector2(0, 10), 17, new Color(0.45f, 0.82f, 1.0f));
 
-            // 4-4. 시작 생명
-            CreateUIText(infoBox.transform, "LivesInfoText", "시작 생명: 3개 (우측 상단에 표시)", new Vector2(0, -30), new Vector2(0.5f, 0.5f), 18, new Color(0.4f, 1.0f, 0.7f));
+            // 4-4. 시작 생명 (네온 민트그린)
+            CreateUIText(infoBox.transform, "LivesInfoText", "시작 생명: 3개 (우측 상단에 표시)", new Vector2(0, -28), 17, new Color(0.25f, 0.95f, 0.55f));
 
-            // 4-5. 랭킹 도전 안내 & [R] 키 힌트
-            CreateUIText(infoBox.transform, "RankingHintText", "게임 종료 후 3글자 이니셜을 등록하여 랭킹에 도전하세요!\n[ R ] 키를 눌러 랭킹 확인", new Vector2(0, -85), new Vector2(0.5f, 0.5f), 16, new Color(1.0f, 0.75f, 0.25f));
+            // 4-5. 랭킹 등록 안내 (오렌지/골드)
+            CreateUIText(infoBox.transform, "RankingHintText", "게임 종료 후 3글자 이니셜을 등록하여 랭킹에 도전하세요!", new Vector2(0, -68), 16, new Color(1.0f, 0.65f, 0.2f));
+
+            // 4-6. [R] 키 랭킹 힌트 (서브)
+            CreateUIText(infoBox.transform, "RankingKeyText", "[ R ] 키를 눌러 랭킹 확인", new Vector2(0, -102), 15, new Color(0.7f, 0.8f, 0.9f));
 
             // 5. Ranking Modal Panel
             GameObject rankingPanel = new GameObject("RankingModalPanel");
@@ -103,9 +107,10 @@ namespace StarInvader.Editor
             Image rankBg = rankingPanel.AddComponent<Image>();
             rankBg.color = new Color(0.04f, 0.05f, 0.14f, 0.96f);
 
-            CreateUIText(rankingPanel.transform, "RankingTitle", "★ TOP 5 RANKING ★", new Vector2(0, 160), new Vector2(0.5f, 0.5f), 38, Color.yellow, FontStyle.Bold);
-            Text rankingListText = CreateUIText(rankingPanel.transform, "RankingListText", "1. PLAYER - 1000\n2. PLAYER - 800", new Vector2(0, 0), new Vector2(0.5f, 0.5f), 24, Color.white);
-            CreateUIText(rankingPanel.transform, "RankingCloseHint", "Press [ESC] / [SPACE] to Close", new Vector2(0, -180), new Vector2(0.5f, 0.5f), 20, Color.gray);
+            CreateUIText(rankingPanel.transform, "RankingTitle", "★ TOP 5 RANKING ★", new Vector2(0, 160), 36, Color.yellow, FontStyle.Bold);
+            Text rankingListText = CreateUIText(rankingPanel.transform, "RankingListText", "1. PLAYER - 1000\n2. PLAYER - 800", new Vector2(0, 0), 22, Color.white);
+            rankingListText.rectTransform.sizeDelta = new Vector2(500, 200);
+            CreateUIText(rankingPanel.transform, "RankingCloseHint", "Press [ESC] / [SPACE] to Close", new Vector2(0, -180), 18, Color.gray);
 
             rankingPanel.SetActive(false);
 
@@ -138,7 +143,120 @@ namespace StarInvader.Editor
             }
 
             EditorSceneManager.SaveScene(scene, scenePath);
-            Debug.Log("[StarInvader] TitleScene 그래픽 및 UI 구성이 원본과 동일하게 완벽 업데이트되었습니다!");
+            Debug.Log("[StarInvader] TitleScene 그래픽 및 투명 로고/네온 테두리 박스가 Pygame 원본과 100% 동일하게 완벽 업데이트되었습니다!");
+        }
+
+        private static Sprite GetOrCreateTransparentLogoSprite()
+        {
+            string outPath = "Assets/GameAssets/images/background/title_logo_transparent.png";
+            if (!File.Exists(outPath))
+            {
+                string srcPath = "Assets/GameAssets/images/background/title_logo.png";
+                byte[] rawBytes = File.ReadAllBytes(srcPath);
+                Texture2D srcTex = new Texture2D(2, 2);
+                srcTex.LoadImage(rawBytes);
+
+                int w = srcTex.width;
+                int h = srcTex.height;
+                Texture2D outTex = new Texture2D(w, h, TextureFormat.RGBA32, false);
+                Color[] pixels = srcTex.GetPixels();
+
+                for (int i = 0; i < pixels.Length; i++)
+                {
+                    Color c = pixels[i];
+                    // 검은색 배경(RGB합이 0.08 미만)을 투명 알파로 변환 (Pygame의 colorkey와 동일)
+                    if (c.r < 0.08f && c.g < 0.08f && c.b < 0.08f)
+                    {
+                        pixels[i] = new Color(0, 0, 0, 0);
+                    }
+                }
+
+                outTex.SetPixels(pixels);
+                outTex.Apply();
+
+                byte[] pngBytes = outTex.EncodeToPNG();
+                File.WriteAllBytes(outPath, pngBytes);
+                AssetDatabase.ImportAsset(outPath, ImportAssetOptions.ForceUpdate);
+
+                TextureImporter importer = AssetImporter.GetAtPath(outPath) as TextureImporter;
+                if (importer != null)
+                {
+                    importer.textureType = TextureImporterType.Sprite;
+                    importer.alphaIsTransparency = true;
+                    importer.SaveAndReimport();
+                }
+            }
+
+            return AssetDatabase.LoadAssetAtPath<Sprite>(outPath);
+        }
+
+        private static Sprite GetOrCreateNeonBoxSprite()
+        {
+            string boxPath = "Assets/GameAssets/images/ui/neon_box_frame.png";
+            if (!File.Exists(boxPath))
+            {
+                int w = 256;
+                int h = 256;
+                int cornerR = 24;
+                int borderThickness = 4;
+
+                Texture2D tex = new Texture2D(w, h, TextureFormat.RGBA32, false);
+                Color bgColor = new Color(0.04f, 0.08f, 0.22f, 0.78f); // 어두운 네온 반투명 블루
+                Color borderColor = new Color(0.2f, 0.6f, 0.95f, 0.95f); // 선명한 네온 블루 외곽선
+                Color clear = new Color(0, 0, 0, 0);
+
+                Color[] pixels = new Color[w * h];
+
+                for (int y = 0; y < h; y++)
+                {
+                    for (int x = 0; x < w; x++)
+                    {
+                        // 둥근 사각형 거리 계산
+                        int dx = 0;
+                        if (x < cornerR) dx = cornerR - x;
+                        else if (x >= w - cornerR) dx = x - (w - cornerR - 1);
+
+                        int dy = 0;
+                        if (y < cornerR) dy = cornerR - y;
+                        else if (y >= h - cornerR) dy = y - (h - cornerR - 1);
+
+                        float dist = Mathf.Sqrt(dx * dx + dy * dy);
+
+                        if (dist > cornerR)
+                        {
+                            pixels[y * w + x] = clear; // 바깥 모서리 투명
+                        }
+                        else if (dist > cornerR - borderThickness || x < borderThickness || x >= w - borderThickness || y < borderThickness || y >= h - borderThickness)
+                        {
+                            pixels[y * w + x] = borderColor; // 네온 테두리
+                        }
+                        else
+                        {
+                            pixels[y * w + x] = bgColor; // 내부 반투명 채우기
+                        }
+                    }
+                }
+
+                tex.SetPixels(pixels);
+                tex.Apply();
+
+                string dir = Path.GetDirectoryName(boxPath);
+                if (!Directory.Exists(dir)) Directory.CreateDirectory(dir);
+
+                File.WriteAllBytes(boxPath, tex.EncodeToPNG());
+                AssetDatabase.ImportAsset(boxPath, ImportAssetOptions.ForceUpdate);
+
+                TextureImporter importer = AssetImporter.GetAtPath(boxPath) as TextureImporter;
+                if (importer != null)
+                {
+                    importer.textureType = TextureImporterType.Sprite;
+                    importer.spriteBorder = new Vector4(cornerR, cornerR, cornerR, cornerR); // 9-Sliced
+                    importer.alphaIsTransparency = true;
+                    importer.SaveAndReimport();
+                }
+            }
+
+            return AssetDatabase.LoadAssetAtPath<Sprite>(boxPath);
         }
 
         private static void SetupBackground()
@@ -184,17 +302,17 @@ namespace StarInvader.Editor
             }
         }
 
-        private static Text CreateUIText(Transform parent, string name, string content, Vector2 anchoredPos, Vector2 anchor, int fontSize, Color color, FontStyle style = FontStyle.Normal)
+        private static Text CreateUIText(Transform parent, string name, string content, Vector2 anchoredPos, int fontSize, Color color, FontStyle style = FontStyle.Normal)
         {
             GameObject textObj = new GameObject(name);
             textObj.transform.SetParent(parent, false);
 
             RectTransform rt = textObj.AddComponent<RectTransform>();
-            rt.anchorMin = anchor;
-            rt.anchorMax = anchor;
-            rt.pivot = anchor;
+            rt.anchorMin = new Vector2(0.5f, 0.5f);
+            rt.anchorMax = new Vector2(0.5f, 0.5f);
+            rt.pivot = new Vector2(0.5f, 0.5f);
             rt.anchoredPosition = anchoredPos;
-            rt.sizeDelta = new Vector2(470, 60);
+            rt.sizeDelta = new Vector2(470, 40);
 
             Text txt = textObj.AddComponent<Text>();
             txt.text = content;
