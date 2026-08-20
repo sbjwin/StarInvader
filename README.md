@@ -17,16 +17,10 @@
 
 ## 👨‍💻 Developer Information
 
-<div align="center">
-
-| 항목 | 정보 |
-| :--- | :--- |
-| **Name** | **Baekjin Sung (성백진)** |
-| **Role** | Passionate Software Engineer |
-| **Email** | [sbjwin4271@gmail.com](mailto:sbjwin4271@gmail.com) |
-| **GitHub** | [@sbjwin](https://github.com/sbjwin) |
-
-</div>
+- **Name:** Baekjin Sung (성백진)
+- **Role:** Passionate Software Engineer
+- **Email:** [sbjwin4271@gmail.com](mailto:sbjwin4271@gmail.com)
+- **GitHub:** [@sbjwin](https://github.com/sbjwin)
 
 ---
 
