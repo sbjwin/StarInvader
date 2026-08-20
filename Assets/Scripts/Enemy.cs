@@ -5,13 +5,13 @@ namespace StarInvader
 {
     public enum EnemyType
     {
-        Top,    // 상단 (핑크)
-        Mid,    // 중단 (주황)
-        Bottom  // 하단 (노랑)
+        Top,
+        Mid,
+        Bottom
     }
 
     /// <summary>
-    /// 개별 적 기체 컴포넌트 (enemy.py 대응)
+    /// 개별 적 기체 컴포넌트 (피격 시 폭발 및 사운드 연동)
     /// </summary>
     public class Enemy : MonoBehaviour
     {
@@ -19,6 +19,7 @@ namespace StarInvader
         [SerializeField] private EnemyType enemyType = EnemyType.Bottom;
         [SerializeField] private int scoreValue = GameConstants.SCORE_PER_ENEMY;
         [SerializeField] private int maxHp = 1;
+        [SerializeField] private GameObject explosionPrefab;
 
         private int currentHp;
         public event Action<Enemy> OnDestroyed;
@@ -28,10 +29,11 @@ namespace StarInvader
             currentHp = maxHp;
         }
 
-        public void Setup(EnemyType type, int score = GameConstants.SCORE_PER_ENEMY)
+        public void Setup(EnemyType type, int score = GameConstants.SCORE_PER_ENEMY, GameObject explosion = null)
         {
             enemyType = type;
             scoreValue = score;
+            if (explosion != null) explosionPrefab = explosion;
         }
 
         public void TakeDamage(int damage = 1)
@@ -45,8 +47,19 @@ namespace StarInvader
 
         private void Die()
         {
+            // 폭발 이펙트 생성
+            if (explosionPrefab != null)
+            {
+                Instantiate(explosionPrefab, transform.position, Quaternion.identity);
+            }
+
+            // 폭발 사운드 재생
+            if (SoundManager.Instance != null)
+            {
+                SoundManager.Instance.PlayExplosionSound();
+            }
+
             OnDestroyed?.Invoke(this);
-            // 향후 폭발 이펙트/사운드 재생 추가 예정
             Destroy(gameObject);
         }
 

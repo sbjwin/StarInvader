@@ -5,7 +5,7 @@ using UnityEngine;
 namespace StarInvader
 {
     /// <summary>
-    /// 플레이어 조작, 발사, 체력(목숨) 및 피격/무적 제어 (player.py 대응)
+    /// 플레이어 이동, 사격(SFX), 피격(CameraShake), 무적 제어
     /// </summary>
     public class PlayerController : MonoBehaviour
     {
@@ -95,6 +95,12 @@ namespace StarInvader
             {
                 Instantiate(bulletPrefab, firePoint.position, Quaternion.identity);
             }
+
+            // 발사음 재생
+            if (SoundManager.Instance != null)
+            {
+                SoundManager.Instance.PlayShootSound();
+            }
         }
 
         public void TakeDamage(int damage = 1)
@@ -104,7 +110,17 @@ namespace StarInvader
             currentLives -= damage;
             OnLivesChanged?.Invoke(currentLives);
 
-            Debug.Log($"[플레이어 피격] 남은 목숨: {currentLives}");
+            // 카메라 셰이크 연출
+            if (CameraShake.Instance != null)
+            {
+                CameraShake.Instance.TriggerShake(0.25f, 0.2f);
+            }
+
+            // 피격 사운드
+            if (SoundManager.Instance != null)
+            {
+                SoundManager.Instance.PlayHitSound();
+            }
 
             if (currentLives <= 0)
             {
@@ -141,7 +157,6 @@ namespace StarInvader
 
         private void Die()
         {
-            Debug.Log("[플레이어 사망] 게임 오버!");
             OnPlayerDied?.Invoke();
             gameObject.SetActive(false);
         }
