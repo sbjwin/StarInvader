@@ -4,7 +4,7 @@ using UnityEngine;
 namespace StarInvader
 {
     /// <summary>
-    /// 적 편대 전체의 이동, 하강 및 가속 관리 (enemy.py의 편대 로직 대응)
+    /// 적 편대 이동, 속도 가속, 반격 사격 및 침략 한계선 관리 (enemy.py 대응)
     /// </summary>
     public class EnemyFleet : MonoBehaviour
     {
@@ -12,26 +12,33 @@ namespace StarInvader
         [SerializeField] private GameObject topEnemyPrefab;
         [SerializeField] private GameObject midEnemyPrefab;
         [SerializeField] private GameObject bottomEnemyPrefab;
+        [SerializeField] private GameObject enemyBulletPrefab;
 
         [Header("이동 설정")]
         [SerializeField] private float baseSpeed = GameConstants.ENEMY_BASE_SPEED_X;
         [SerializeField] private float maxSpeed = 5.5f;
         [SerializeField] private float dropDistance = GameConstants.ENEMY_DROP_DISTANCE;
         [SerializeField] private float boundaryX = GameConstants.SCREEN_WIDTH_HALF - 0.3f;
+        [SerializeField] private float invasionYLimit = GameConstants.INVASION_Y_LIMIT;
+
+        [Header("사격 설정")]
+        [SerializeField] private float shootIntervalMin = 0.8f;
+        [SerializeField] private float shootIntervalMax = 2.0f;
 
         private List<Enemy> activeEnemies = new List<Enemy>();
         private int totalInitialEnemies = 0;
         private int moveDirection = 1; // 1: 우측, -1: 좌측
         private float currentSpeed;
+        private float nextShootTime = 0f;
 
         private void Start()
         {
             SpawnFleet();
+            ScheduleNextShot();
         }
 
         public void SpawnFleet()
         {
-            // 기존 적이 남아있다면 제거
             ClearFleet();
 
             int rows = GameConstants.ENEMY_ROWS;
@@ -59,7 +66,6 @@ namespace StarInvader
                     }
                     else
                     {
-                        // 임시 적 기체 생성
                         enemyObj = CreateFallbackEnemy(rowType, spawnPos);
                     }
 
@@ -81,9 +87,10 @@ namespace StarInvader
         {
             if (activeEnemies.Count == 0) return;
 
-            // 1. 편대 좌우 이동
+            // 1. 편대 이동
             float deltaX = moveDirection * currentSpeed * Time.deltaTime;
             bool hitBoundary = false;
+            bool reachedInvasionLimit = false;
 
             foreach (var enemy in activeEnemies)
             {
@@ -92,18 +99,15 @@ namespace StarInvader
                 pos.x += deltaX;
                 enemy.transform.position = pos;
 
-                // 화면 경계 충돌 체크
-                if (moveDirection > 0 && pos.x >= boundaryX)
-                {
-                    hitBoundary = true;
-                }
-                else if (moveDirection < 0 && pos.x <= -boundaryX)
-                {
-                    hitBoundary = true;
-                }
+                // 좌우 경계 도달 확인
+                if (moveDirection > 0 && pos.x >= boundaryX) hitBoundary = true;
+                else if (moveDirection < 0 && pos.x <= -boundaryX) hitBoundary = true;
+
+                // 침략 한계선 도달 확인
+                if (pos.y <= invasionYLimit) reachedInvasionLimit = true;
             }
 
-            // 2. 경계 도달 시 방향 반전 및 전체 하강
+            // 2. 방향 반전 및 하강
             if (hitBoundary)
             {
                 moveDirection *= -1;
@@ -115,20 +119,74 @@ namespace StarInvader
                     enemy.transform.position = pos;
                 }
             }
+
+            // 3. 침략선 돌파 판정
+            if (reachedInvasionLimit)
+            {
+                PlayerController player = FindAnyObjectByType<PlayerController>();
+                if (player != null && player.gameObject.activeSelf)
+                {
+                    Debug.LogWarning("[외계인 침략 성공] 적이 방어선을 뚫었습니다!");
+                    player.TakeDamage(999); // 즉시 패배 처리
+                }
+            }
+
+            // 4. 적 반격 사격
+            if (Time.time >= nextShootTime)
+            {
+                ShootRandomEnemyBullet();
+                ScheduleNextShot();
+            }
+        }
+
+        private void ShootRandomEnemyBullet()
+        {
+            List<Enemy> bottomEnemies = GetBottomEnemies();
+            if (bottomEnemies.Count == 0) return;
+
+            Enemy shooter = bottomEnemies[Random.Range(0, bottomEnemies.Count)];
+            if (shooter != null && enemyBulletPrefab != null)
+            {
+                Vector3 spawnPos = shooter.transform.position + Vector3.down * 0.3f;
+                Instantiate(enemyBulletPrefab, spawnPos, Quaternion.identity);
+            }
+        }
+
+        private List<Enemy> GetBottomEnemies()
+        {
+            // 각 열에서 가장 아래쪽에 있는 적만 선별 (스페이스 인베이더 규칙)
+            Dictionary<int, Enemy> columnBottomMap = new Dictionary<int, Enemy>();
+
+            foreach (var enemy in activeEnemies)
+            {
+                if (enemy == null) continue;
+                // X좌표를 반올림하여 열(Column) 식별
+                int colKey = Mathf.RoundToInt(enemy.transform.position.x * 10f);
+
+                if (!columnBottomMap.ContainsKey(colKey) || enemy.transform.position.y < columnBottomMap[colKey].transform.position.y)
+                {
+                    columnBottomMap[colKey] = enemy;
+                }
+            }
+
+            return new List<Enemy>(columnBottomMap.Values);
+        }
+
+        private void ScheduleNextShot()
+        {
+            nextShootTime = Time.time + Random.Range(shootIntervalMin, shootIntervalMax);
         }
 
         private void HandleEnemyDestroyed(Enemy enemy)
         {
             activeEnemies.Remove(enemy);
 
-            // 적이 줄어들수록 이동 속도 점진적 가속 (클래식 인베이더 기믹)
             if (totalInitialEnemies > 0)
             {
                 float destroyedRatio = 1f - ((float)activeEnemies.Count / totalInitialEnemies);
                 currentSpeed = Mathf.Lerp(baseSpeed, maxSpeed, destroyedRatio);
             }
 
-            // 모든 적 처치 시 웨이브 재스폰
             if (activeEnemies.Count == 0)
             {
                 Invoke(nameof(SpawnFleet), 1.0f);

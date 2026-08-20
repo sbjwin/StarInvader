@@ -3,7 +3,7 @@ using UnityEngine;
 namespace StarInvader
 {
     /// <summary>
-    /// 플레이어 및 적 탄환 기본 동작 및 충돌 스크립트 (bullet.py 대응)
+    /// 플레이어 및 적 탄환 기본 동작 및 충돌 판정 (bullet.py 대응)
     /// </summary>
     public class Bullet : MonoBehaviour
     {
@@ -28,14 +28,24 @@ namespace StarInvader
 
         private void OnTriggerEnter2D(Collider2D other)
         {
-            // 플레이어 탄환이 적과 충돌했을 때
             if (!isEnemyBullet)
             {
+                // [플레이어 탄환] -> 적 피격
                 Enemy enemy = other.GetComponent<Enemy>();
                 if (enemy != null)
                 {
                     enemy.TakeDamage(damage);
-                    Destroy(gameObject); // 탄환 소멸
+                    Destroy(gameObject);
+                }
+            }
+            else
+            {
+                // [적 탄환] -> 플레이어 피격
+                PlayerController player = other.GetComponent<PlayerController>();
+                if (player != null)
+                {
+                    player.TakeDamage(damage);
+                    Destroy(gameObject);
                 }
             }
         }
@@ -43,6 +53,11 @@ namespace StarInvader
         public void SetSpeed(float newSpeed)
         {
             speed = newSpeed;
+        }
+
+        public void SetEnemyBullet(bool enemyBullet)
+        {
+            isEnemyBullet = enemyBullet;
         }
 
         public bool IsEnemyBullet => isEnemyBullet;

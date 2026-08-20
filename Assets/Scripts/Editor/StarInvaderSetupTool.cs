@@ -19,17 +19,28 @@ namespace StarInvader.Editor
         [MenuItem("Star Invader/2단계: 적 편대 및 충돌 시스템 구성", false, 2)]
         public static void SetupStep2Scene()
         {
-            // 1단계 요소 먼저 확인/구성
+            SetupStep3SceneInternal(false);
+            EditorUtility.DisplayDialog("Star Invader", "2단계 구성이 완료되었습니다!\n\n유니티 상단의 [▶ (Play)] 버튼을 눌러 테스트해 보세요.", "확인");
+        }
+
+        [MenuItem("Star Invader/3단계: 적 공격 및 플레이어 라이프 시스템 구성", false, 3)]
+        public static void SetupStep3Scene()
+        {
+            SetupStep3SceneInternal(true);
+            EditorUtility.DisplayDialog("Star Invader", "3단계 (적 탄환 반격, 플레이어 피격/목숨 감소, 무적 깜빡임, 침략 한계선) 구성이 완료되었습니다!\n\n유니티 상단의 [▶ (Play)] 버튼을 눌러 테스트해 보세요.", "확인");
+        }
+
+        private static void SetupStep3SceneInternal(bool includeEnemyBullets)
+        {
             SetupCamera();
             GameObject bulletPrefabObj = SetupBulletPrefab();
             SetupPlayer(bulletPrefabObj);
 
-            // 2단계 적 프리팹 및 EnemyFleet 구성
             GameObject topEnemyPrefab = SetupEnemyPrefab("Enemy_Top", "Assets/GameAssets/images/enemy/enemy_top.png", EnemyType.Top, Color.magenta);
             GameObject midEnemyPrefab = SetupEnemyPrefab("Enemy_Mid", "Assets/GameAssets/images/enemy/enemy_mid.png", EnemyType.Mid, new Color(1f, 0.6f, 0.2f));
             GameObject bottomEnemyPrefab = SetupEnemyPrefab("Enemy_Bottom", "Assets/GameAssets/images/enemy/enemy_bottom.png", EnemyType.Bottom, Color.yellow);
+            GameObject enemyBulletPrefab = SetupEnemyBulletPrefab();
 
-            // EnemyFleet 오브젝트 씬에 배치
             GameObject fleetObj = GameObject.Find("EnemyFleet");
             if (fleetObj == null)
             {
@@ -43,10 +54,13 @@ namespace StarInvader.Editor
             serializedFleet.FindProperty("topEnemyPrefab").objectReferenceValue = topEnemyPrefab;
             serializedFleet.FindProperty("midEnemyPrefab").objectReferenceValue = midEnemyPrefab;
             serializedFleet.FindProperty("bottomEnemyPrefab").objectReferenceValue = bottomEnemyPrefab;
+            if (includeEnemyBullets)
+            {
+                serializedFleet.FindProperty("enemyBulletPrefab").objectReferenceValue = enemyBulletPrefab;
+            }
             serializedFleet.ApplyModifiedProperties();
 
             Selection.activeGameObject = fleetObj;
-            EditorUtility.DisplayDialog("Star Invader", "2단계 (적 편대 24기 스폰, 좌우 이동/하강 및 탄환 충돌 피격) 구성이 완료되었습니다!\n\n유니티 상단의 [▶ (Play)] 버튼을 눌러 테스트해 보세요.", "확인");
         }
 
         private static void SetupCamera()
@@ -80,7 +94,7 @@ namespace StarInvader.Editor
             {
                 GameObject tempBullet = new GameObject("PlayerBullet");
                 SpriteRenderer bSr = tempBullet.AddComponent<SpriteRenderer>();
-                bSr.color = new Color(0.47f, 1.0f, 1.0f, 1.0f); // 네온 시안
+                bSr.color = new Color(0.47f, 1.0f, 1.0f, 1.0f);
                 
                 Texture2D bulletTex = MakeColorTexture(16, 40, Color.cyan);
                 Sprite bulletSprite = Sprite.Create(bulletTex, new Rect(0, 0, 16, 40), new Vector2(0.5f, 0.5f), 100f);
@@ -90,7 +104,43 @@ namespace StarInvader.Editor
                 bc.isTrigger = true;
                 bc.size = new Vector2(0.16f, 0.4f);
 
-                tempBullet.AddComponent<Bullet>();
+                Bullet b = tempBullet.AddComponent<Bullet>();
+                b.SetSpeed(GameConstants.PLAYER_BULLET_SPEED);
+                b.SetEnemyBullet(false);
+
+                bulletPrefabObj = PrefabUtility.SaveAsPrefabAsset(tempBullet, bulletPrefabPath);
+                GameObject.DestroyImmediate(tempBullet);
+            }
+            return bulletPrefabObj;
+        }
+
+        private static GameObject SetupEnemyBulletPrefab()
+        {
+            string prefabsDir = "Assets/Prefabs";
+            if (!AssetDatabase.IsValidFolder(prefabsDir))
+            {
+                AssetDatabase.CreateFolder("Assets", "Prefabs");
+            }
+
+            string bulletPrefabPath = "Assets/Prefabs/EnemyBullet.prefab";
+            GameObject bulletPrefabObj = AssetDatabase.LoadAssetAtPath<GameObject>(bulletPrefabPath);
+            if (bulletPrefabObj == null)
+            {
+                GameObject tempBullet = new GameObject("EnemyBullet");
+                SpriteRenderer bSr = tempBullet.AddComponent<SpriteRenderer>();
+                bSr.color = new Color(1.0f, 0.35f, 0.35f, 1.0f); // 핫 레드
+                
+                Texture2D bulletTex = MakeColorTexture(16, 40, Color.red);
+                Sprite bulletSprite = Sprite.Create(bulletTex, new Rect(0, 0, 16, 40), new Vector2(0.5f, 0.5f), 100f);
+                bSr.sprite = bulletSprite;
+
+                BoxCollider2D bc = tempBullet.AddComponent<BoxCollider2D>();
+                bc.isTrigger = true;
+                bc.size = new Vector2(0.16f, 0.4f);
+
+                Bullet b = tempBullet.AddComponent<Bullet>();
+                b.SetSpeed(GameConstants.ENEMY_BULLET_SPEED);
+                b.SetEnemyBullet(true);
 
                 bulletPrefabObj = PrefabUtility.SaveAsPrefabAsset(tempBullet, bulletPrefabPath);
                 GameObject.DestroyImmediate(tempBullet);
@@ -118,6 +168,7 @@ namespace StarInvader.Editor
             BoxCollider2D col = playerObj.GetComponent<BoxCollider2D>();
             if (col == null) col = playerObj.AddComponent<BoxCollider2D>();
             col.isTrigger = true;
+            col.size = new Vector2(0.5f, 0.4f);
 
             PlayerController controller = playerObj.GetComponent<PlayerController>();
             if (controller == null) controller = playerObj.AddComponent<PlayerController>();
@@ -161,6 +212,7 @@ namespace StarInvader.Editor
 
                 BoxCollider2D col = tempEnemy.AddComponent<BoxCollider2D>();
                 col.isTrigger = true;
+                col.size = new Vector2(0.4f, 0.32f);
 
                 Enemy enemy = tempEnemy.AddComponent<Enemy>();
                 enemy.Setup(type);

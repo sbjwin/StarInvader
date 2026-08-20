@@ -1,9 +1,11 @@
+using System;
+using System.Collections;
 using UnityEngine;
 
 namespace StarInvader
 {
     /// <summary>
-    /// 플레이어 이동 및 기본 사격 컨트롤러 (player.py 대응)
+    /// 플레이어 조작, 발사, 체력(목숨) 및 피격/무적 제어 (player.py 대응)
     /// </summary>
     public class PlayerController : MonoBehaviour
     {
@@ -18,11 +20,26 @@ namespace StarInvader
         [SerializeField] private float shootCooldown = GameConstants.PLAYER_SHOOT_COOLDOWN;
         [SerializeField] private int maxConcurrentBullets = GameConstants.PLAYER_MAX_BULLETS;
 
+        [Header("라이프 및 무적 설정")]
+        [SerializeField] private int maxLives = GameConstants.PLAYER_MAX_LIVES;
+        [SerializeField] private float invincibleDuration = GameConstants.PLAYER_INVINCIBLE_DURATION;
+
+        private int currentLives;
+        private bool isInvincible = false;
         private float lastShootTime = -10f;
+        private SpriteRenderer spriteRenderer;
+
+        public event Action<int> OnLivesChanged;
+        public event Action OnPlayerDied;
+
+        private void Awake()
+        {
+            currentLives = maxLives;
+            spriteRenderer = GetComponent<SpriteRenderer>();
+        }
 
         private void Start()
         {
-            // 발사 위치가 지정되지 않았으면 플레이어 위치 기준으로 자동 생성
             if (firePoint == null)
             {
                 GameObject fp = new GameObject("FirePoint");
@@ -30,6 +47,8 @@ namespace StarInvader
                 fp.transform.localPosition = new Vector3(0, 0.5f, 0);
                 firePoint = fp.transform;
             }
+
+            OnLivesChanged?.Invoke(currentLives);
         }
 
         private void Update()
@@ -40,23 +59,19 @@ namespace StarInvader
 
         private void HandleMovement()
         {
-            float horizontalInput = Input.GetAxisRaw("Horizontal"); // A/D 또는 좌우 화살표
+            float horizontalInput = Input.GetAxisRaw("Horizontal");
             Vector3 position = transform.position;
             position.x += horizontalInput * moveSpeed * Time.deltaTime;
-
-            // 좌우 이동 범위 제한 (Clamp)
             position.x = Mathf.Clamp(position.x, minX, maxX);
             transform.position = position;
         }
 
         private void HandleShooting()
         {
-            // 스페이스바 또는 기본 사격 키 입력 확인
             if (Input.GetKey(KeyCode.Space) || Input.GetButton("Fire1"))
             {
                 if (Time.time >= lastShootTime + shootCooldown)
                 {
-                    // 현재 활성화된 플레이어 탄환 수 확인
                     int activeBulletCount = 0;
                     Bullet[] existingBullets = FindObjectsByType<Bullet>(FindObjectsSortMode.None);
                     foreach (var b in existingBullets)
@@ -80,20 +95,58 @@ namespace StarInvader
             {
                 Instantiate(bulletPrefab, firePoint.position, Quaternion.identity);
             }
+        }
+
+        public void TakeDamage(int damage = 1)
+        {
+            if (isInvincible || currentLives <= 0) return;
+
+            currentLives -= damage;
+            OnLivesChanged?.Invoke(currentLives);
+
+            Debug.Log($"[플레이어 피격] 남은 목숨: {currentLives}");
+
+            if (currentLives <= 0)
+            {
+                Die();
+            }
             else
             {
-                // 프리팹이 없을 경우 기본 Quad로 임시 발사
-                GameObject defaultBullet = GameObject.CreatePrimitive(PrimitiveType.Quad);
-                defaultBullet.name = "PlayerBullet";
-                defaultBullet.transform.position = firePoint.position;
-                defaultBullet.transform.localScale = new Vector3(0.15f, 0.4f, 1f);
-                
-                Collider col = defaultBullet.GetComponent<Collider>();
-                if (col != null) Destroy(col);
-
-                defaultBullet.AddComponent<BoxCollider2D>();
-                defaultBullet.AddComponent<Bullet>();
+                StartCoroutine(InvincibilityRoutine());
             }
         }
+
+        private IEnumerator InvincibilityRoutine()
+        {
+            isInvincible = true;
+            float elapsed = 0f;
+            float flashInterval = 0.1f;
+
+            while (elapsed < invincibleDuration)
+            {
+                if (spriteRenderer != null)
+                {
+                    spriteRenderer.enabled = !spriteRenderer.enabled;
+                }
+                yield return new WaitForSeconds(flashInterval);
+                elapsed += flashInterval;
+            }
+
+            if (spriteRenderer != null)
+            {
+                spriteRenderer.enabled = true;
+            }
+            isInvincible = false;
+        }
+
+        private void Die()
+        {
+            Debug.Log("[플레이어 사망] 게임 오버!");
+            OnPlayerDied?.Invoke();
+            gameObject.SetActive(false);
+        }
+
+        public int CurrentLives => currentLives;
+        public bool IsInvincible => isInvincible;
     }
 }
