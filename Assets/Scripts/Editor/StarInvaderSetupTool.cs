@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.UI;
 using UnityEditor;
 using System.IO;
 
@@ -33,28 +34,164 @@ namespace StarInvader.Editor
         [MenuItem("Star Invader/4단계: 사운드 및 이펙트/배경 연출 구성", false, 4)]
         public static void SetupStep4Scene()
         {
-            // 1. 카메라 & 카메라 셰이크
+            SetupStep4SceneInternal();
+            EditorUtility.DisplayDialog("Star Invader", "4단계 (사운드, 폭발 이펙트, 우주 배경 스크롤링, 피격 시 카메라 흔들림) 구성이 완료되었습니다!\n\n유니티 상단의 [▶ (Play)] 버튼을 눌러 테스트해 보세요.", "확인");
+        }
+
+        [MenuItem("Star Invader/5단계: 전체 게임 루프 및 UI/랭킹 시스템 완성 (최종)", false, 5)]
+        public static void SetupStep5Scene()
+        {
+            // 1~4단계 요소 구성
+            SetupStep4SceneInternal();
+
+            // 랭킹 매니저
+            GameObject rmObj = GameObject.Find("RankingManager");
+            if (rmObj == null) rmObj = new GameObject("RankingManager");
+            if (rmObj.GetComponent<RankingManager>() == null) rmObj.AddComponent<RankingManager>();
+
+            // UI 캔버스 및 패널 생성
+            GameObject canvasObj = SetupCanvasAndUI();
+
+            // 게임 매니저 세팅
+            GameObject gmObj = GameObject.Find("GameManager");
+            if (gmObj == null) gmObj = new GameObject("GameManager");
+            GameManager gm = gmObj.GetComponent<GameManager>();
+            if (gm == null) gm = gmObj.AddComponent<GameManager>();
+
+            PlayerController player = FindAnyObjectByType<PlayerController>();
+            EnemyFleet fleet = FindAnyObjectByType<EnemyFleet>();
+
+            SerializedObject serializedGm = new SerializedObject(gm);
+            serializedGm.FindProperty("player").objectReferenceValue = player;
+            serializedGm.FindProperty("enemyFleet").objectReferenceValue = fleet;
+            serializedGm.ApplyModifiedProperties();
+
+            EditorUtility.DisplayDialog("Star Invader", "★ 5단계 (전체 게임 루프, HUD/타이틀/게임오버/랭킹 UI 및 로컬 JSON 저장) 구성이 완료되었습니다!\n\n[▶ Play] 버튼을 누르고 Space 키를 눌러 게임을 시작해 보세요!", "확인");
+        }
+
+        private static void SetupStep4SceneInternal()
+        {
             Camera mainCam = SetupCamera();
             if (mainCam.GetComponent<CameraShake>() == null)
             {
                 mainCam.gameObject.AddComponent<CameraShake>();
             }
 
-            // 2. 우주 배경 스크롤러 세팅
             SetupBackground();
-
-            // 3. 사운드 매니저 세팅
             SetupSoundManager();
 
-            // 4. 폭발 프리팹 생성
             GameObject explosionPrefab = SetupExplosionPrefab();
-
-            // 5. 플레이어 & 적 편대 세팅 (폭발 프리팹 포함)
             GameObject bulletPrefabObj = SetupBulletPrefab();
             SetupPlayer(bulletPrefabObj);
             SetupStep3SceneInternal(true, explosionPrefab);
+        }
 
-            EditorUtility.DisplayDialog("Star Invader", "4단계 (사운드, 폭발 이펙트, 우주 배경 스크롤링, 피격 시 카메라 흔들림) 구성이 완료되었습니다!\n\n유니티 상단의 [▶ (Play)] 버튼을 눌러 테스트해 보세요.", "확인");
+        private static GameObject SetupCanvasAndUI()
+        {
+            GameObject canvasObj = GameObject.Find("Canvas");
+            if (canvasObj == null)
+            {
+                canvasObj = new GameObject("Canvas");
+                Canvas canvas = canvasObj.AddComponent<Canvas>();
+                canvas.renderMode = RenderMode.ScreenSpaceOverlay;
+                CanvasScaler scaler = canvasObj.AddComponent<CanvasScaler>();
+                scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
+                scaler.referenceResolution = new Vector2(600, 800);
+                scaler.matchWidthOrHeight = 0.5f;
+                canvasObj.AddComponent<GraphicRaycaster>();
+            }
+
+            if (FindAnyObjectByType<UnityEngine.EventSystems.EventSystem>() == null)
+            {
+                GameObject esObj = new GameObject("EventSystem");
+                esObj.AddComponent<UnityEngine.EventSystems.EventSystem>();
+                esObj.AddComponent<UnityEngine.EventSystems.StandaloneInputModule>();
+            }
+
+            // UIManager 컴포넌트
+            UIManager uiManager = canvasObj.GetComponent<UIManager>();
+            if (uiManager == null) uiManager = canvasObj.AddComponent<UIManager>();
+
+            // 1. HUD Panel
+            GameObject hudPanel = CreateOrGetUIPanel(canvasObj.transform, "HUD_Panel");
+            Text scoreText = CreateOrGetUIText(hudPanel.transform, "ScoreText", "SCORE: 00000", new Vector2(20, -20), new Vector2(0, 1), 24, Color.cyan);
+            Text highScoreText = CreateOrGetUIText(hudPanel.transform, "HighScoreText", "HI-SCORE: 00000", new Vector2(-20, -20), new Vector2(1, 1), 24, Color.yellow);
+            Text livesText = CreateOrGetUIText(hudPanel.transform, "LivesText", "LIVES: ♥ ♥ ♥", new Vector2(20, 20), new Vector2(0, 0), 24, Color.green);
+
+            // 2. Title Panel
+            GameObject titlePanel = CreateOrGetUIPanel(canvasObj.transform, "Title_Panel");
+            CreateOrGetUIText(titlePanel.transform, "TitleText", "STAR INVADER", new Vector2(0, 120), new Vector2(0.5f, 0.5f), 48, Color.cyan);
+            CreateOrGetUIText(titlePanel.transform, "SubText", "Press SPACE to Start\n[R] View Ranking", new Vector2(0, -60), new Vector2(0.5f, 0.5f), 24, Color.white);
+
+            // 3. GameOver Panel
+            GameObject gameOverPanel = CreateOrGetUIPanel(canvasObj.transform, "GameOver_Panel");
+            CreateOrGetUIText(gameOverPanel.transform, "GameOverText", "GAME OVER", new Vector2(0, 100), new Vector2(0.5f, 0.5f), 48, Color.red);
+            Text finalScoreText = CreateOrGetUIText(gameOverPanel.transform, "FinalScoreText", "최종 점수: 0", new Vector2(0, 20), new Vector2(0.5f, 0.5f), 28, Color.yellow);
+            Text newRecordText = CreateOrGetUIText(gameOverPanel.transform, "NewRecordText", "★ NEW RECORD! ★", new Vector2(0, -30), new Vector2(0.5f, 0.5f), 26, Color.magenta);
+            CreateOrGetUIText(gameOverPanel.transform, "RestartText", "Press SPACE to Restart\n[ESC] Title Screen", new Vector2(0, -100), new Vector2(0.5f, 0.5f), 22, Color.white);
+
+            // 4. Ranking Panel
+            GameObject rankingPanel = CreateOrGetUIPanel(canvasObj.transform, "Ranking_Panel");
+            CreateOrGetUIText(rankingPanel.transform, "RankingTitleText", "TOP 5 RANKING", new Vector2(0, 150), new Vector2(0.5f, 0.5f), 40, Color.yellow);
+            Text rankingListText = CreateOrGetUIText(rankingPanel.transform, "RankingListText", "1. PLAYER - 1000\n2. PLAYER - 800", new Vector2(0, 0), new Vector2(0.5f, 0.5f), 22, Color.white);
+            CreateOrGetUIText(rankingPanel.transform, "RankingBackText", "Press [ESC] to Back", new Vector2(0, -180), new Vector2(0.5f, 0.5f), 20, Color.gray);
+
+            // UIManager Serialized 연결
+            SerializedObject serializedUI = new SerializedObject(uiManager);
+            serializedUI.FindProperty("hudPanel").objectReferenceValue = hudPanel;
+            serializedUI.FindProperty("titlePanel").objectReferenceValue = titlePanel;
+            serializedUI.FindProperty("gameOverPanel").objectReferenceValue = gameOverPanel;
+            serializedUI.FindProperty("rankingPanel").objectReferenceValue = rankingPanel;
+
+            serializedUI.FindProperty("scoreText").objectReferenceValue = scoreText;
+            serializedUI.FindProperty("highScoreText").objectReferenceValue = highScoreText;
+            serializedUI.FindProperty("livesText").objectReferenceValue = livesText;
+            serializedUI.FindProperty("finalScoreText").objectReferenceValue = finalScoreText;
+            serializedUI.FindProperty("newRecordText").objectReferenceValue = newRecordText;
+            serializedUI.FindProperty("rankingListText").objectReferenceValue = rankingListText;
+            serializedUI.ApplyModifiedProperties();
+
+            return canvasObj;
+        }
+
+        private static GameObject CreateOrGetUIPanel(Transform parent, string name)
+        {
+            Transform t = parent.Find(name);
+            if (t != null) return t.gameObject;
+
+            GameObject panel = new GameObject(name);
+            panel.transform.SetParent(parent, false);
+            RectTransform rt = panel.AddComponent<RectTransform>();
+            rt.anchorMin = Vector2.zero;
+            rt.anchorMax = Vector2.one;
+            rt.offsetMin = Vector2.zero;
+            rt.offsetMax = Vector2.zero;
+            return panel;
+        }
+
+        private static Text CreateOrGetUIText(Transform parent, string name, string content, Vector2 anchoredPos, Vector2 anchor, int fontSize, Color color)
+        {
+            Transform t = parent.Find(name);
+            GameObject textObj = (t != null) ? t.gameObject : new GameObject(name);
+            textObj.transform.SetParent(parent, false);
+
+            RectTransform rt = textObj.GetComponent<RectTransform>();
+            if (rt == null) rt = textObj.AddComponent<RectTransform>();
+            rt.anchorMin = anchor;
+            rt.anchorMax = anchor;
+            rt.pivot = anchor;
+            rt.anchoredPosition = anchoredPos;
+            rt.sizeDelta = new Vector2(500, 150);
+
+            Text txt = textObj.GetComponent<Text>();
+            if (txt == null) txt = textObj.AddComponent<Text>();
+            txt.text = content;
+            txt.fontSize = fontSize;
+            txt.color = color;
+            txt.alignment = (anchor == new Vector2(0.5f, 0.5f)) ? TextAnchor.MiddleCenter : (anchor.x == 0 ? TextAnchor.UpperLeft : TextAnchor.UpperRight);
+            txt.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf") ?? Resources.GetBuiltinResource<Font>("Arial.ttf");
+
+            return txt;
         }
 
         private static Camera SetupCamera()
