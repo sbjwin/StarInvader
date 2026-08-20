@@ -193,67 +193,63 @@ namespace StarInvader.Editor
         private static Sprite GetOrCreateNeonBoxSprite()
         {
             string boxPath = "Assets/GameAssets/images/ui/neon_box_frame.png";
-            if (!File.Exists(boxPath))
+            int w = 256;
+            int h = 256;
+            int cornerR = 12; // 세련되고 작은 라운드 코너
+            float borderThickness = 1.5f; // 초슬림 1.5px 네온 라인
+
+            Texture2D tex = new Texture2D(w, h, TextureFormat.RGBA32, false);
+            Color bgColor = new Color(0.02f, 0.05f, 0.16f, 0.72f); // 깊고 은은한 반투명 다크 네이비
+            Color borderColor = new Color(0.24f, 0.60f, 0.98f, 0.95f); // 세련된 사이언/네온 블루
+            Color clear = new Color(0, 0, 0, 0);
+
+            Color[] pixels = new Color[w * h];
+
+            for (int y = 0; y < h; y++)
             {
-                int w = 256;
-                int h = 256;
-                int cornerR = 24;
-                int borderThickness = 4;
-
-                Texture2D tex = new Texture2D(w, h, TextureFormat.RGBA32, false);
-                Color bgColor = new Color(0.04f, 0.08f, 0.22f, 0.78f); // 어두운 네온 반투명 블루
-                Color borderColor = new Color(0.2f, 0.6f, 0.95f, 0.95f); // 선명한 네온 블루 외곽선
-                Color clear = new Color(0, 0, 0, 0);
-
-                Color[] pixels = new Color[w * h];
-
-                for (int y = 0; y < h; y++)
+                for (int x = 0; x < w; x++)
                 {
-                    for (int x = 0; x < w; x++)
+                    int dx = 0;
+                    if (x < cornerR) dx = cornerR - x;
+                    else if (x >= w - cornerR) dx = x - (w - cornerR - 1);
+
+                    int dy = 0;
+                    if (y < cornerR) dy = cornerR - y;
+                    else if (y >= h - cornerR) dy = y - (h - cornerR - 1);
+
+                    float dist = Mathf.Sqrt(dx * dx + dy * dy);
+
+                    if (dist > cornerR)
                     {
-                        // 둥근 사각형 거리 계산
-                        int dx = 0;
-                        if (x < cornerR) dx = cornerR - x;
-                        else if (x >= w - cornerR) dx = x - (w - cornerR - 1);
-
-                        int dy = 0;
-                        if (y < cornerR) dy = cornerR - y;
-                        else if (y >= h - cornerR) dy = y - (h - cornerR - 1);
-
-                        float dist = Mathf.Sqrt(dx * dx + dy * dy);
-
-                        if (dist > cornerR)
-                        {
-                            pixels[y * w + x] = clear; // 바깥 모서리 투명
-                        }
-                        else if (dist > cornerR - borderThickness || x < borderThickness || x >= w - borderThickness || y < borderThickness || y >= h - borderThickness)
-                        {
-                            pixels[y * w + x] = borderColor; // 네온 테두리
-                        }
-                        else
-                        {
-                            pixels[y * w + x] = bgColor; // 내부 반투명 채우기
-                        }
+                        pixels[y * w + x] = clear;
+                    }
+                    else if (dist > cornerR - borderThickness || x < borderThickness || x >= w - borderThickness || y < borderThickness || y >= h - borderThickness)
+                    {
+                        pixels[y * w + x] = borderColor;
+                    }
+                    else
+                    {
+                        pixels[y * w + x] = bgColor;
                     }
                 }
+            }
 
-                tex.SetPixels(pixels);
-                tex.Apply();
+            tex.SetPixels(pixels);
+            tex.Apply();
 
-                string dir = Path.GetDirectoryName(boxPath);
-                if (!Directory.Exists(dir)) Directory.CreateDirectory(dir);
+            string dir = Path.GetDirectoryName(boxPath);
+            if (!Directory.Exists(dir)) Directory.CreateDirectory(dir);
 
-                File.WriteAllBytes(boxPath, tex.EncodeToPNG());
-                AssetDatabase.ImportAsset(boxPath, ImportAssetOptions.ForceUpdate);
+            File.WriteAllBytes(boxPath, tex.EncodeToPNG());
+            AssetDatabase.ImportAsset(boxPath, ImportAssetOptions.ForceUpdate);
 
-                TextureImporter importer = AssetImporter.GetAtPath(boxPath) as TextureImporter;
-                if (importer != null)
-                {
-                    importer.textureType = TextureImporterType.Sprite;
-                    importer.spriteBorder = new Vector4(cornerR, cornerR, cornerR, cornerR); // 9-Sliced
-                    importer.alphaIsTransparency = true;
-                    importer.SaveAndReimport();
-                }
+            TextureImporter importer = AssetImporter.GetAtPath(boxPath) as TextureImporter;
+            if (importer != null)
+            {
+                importer.textureType = TextureImporterType.Sprite;
+                importer.spriteBorder = new Vector4(cornerR + 4, cornerR + 4, cornerR + 4, cornerR + 4); // 9-Sliced
+                importer.alphaIsTransparency = true;
+                importer.SaveAndReimport();
             }
 
             return AssetDatabase.LoadAssetAtPath<Sprite>(boxPath);
