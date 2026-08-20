@@ -101,12 +101,26 @@ namespace StarInvader.Editor
                 canvasObj.AddComponent<GraphicRaycaster>();
             }
 
-            if (FindAnyObjectByType<UnityEngine.EventSystems.EventSystem>() == null)
+            UnityEngine.EventSystems.EventSystem eventSystem = FindAnyObjectByType<UnityEngine.EventSystems.EventSystem>();
+            if (eventSystem == null)
             {
                 GameObject esObj = new GameObject("EventSystem");
-                esObj.AddComponent<UnityEngine.EventSystems.EventSystem>();
-                esObj.AddComponent<UnityEngine.EventSystems.StandaloneInputModule>();
+                eventSystem = esObj.AddComponent<UnityEngine.EventSystems.EventSystem>();
             }
+
+#if ENABLE_INPUT_SYSTEM
+            var standalone = eventSystem.GetComponent<UnityEngine.EventSystems.StandaloneInputModule>();
+            if (standalone != null) Object.DestroyImmediate(standalone);
+            if (eventSystem.GetComponent<UnityEngine.InputSystem.UI.InputSystemUIInputModule>() == null)
+            {
+                eventSystem.gameObject.AddComponent<UnityEngine.InputSystem.UI.InputSystemUIInputModule>();
+            }
+#else
+            if (eventSystem.GetComponent<UnityEngine.EventSystems.StandaloneInputModule>() == null)
+            {
+                eventSystem.gameObject.AddComponent<UnityEngine.EventSystems.StandaloneInputModule>();
+            }
+#endif
 
             // UIManager 컴포넌트
             UIManager uiManager = canvasObj.GetComponent<UIManager>();
@@ -368,12 +382,29 @@ namespace StarInvader.Editor
                 bc.isTrigger = true;
                 bc.size = new Vector2(0.16f, 0.4f);
 
+                Rigidbody2D rb = tempBullet.AddComponent<Rigidbody2D>();
+                rb.bodyType = RigidbodyType2D.Kinematic;
+                rb.collisionDetectionMode = CollisionDetectionMode2D.Continuous;
+
                 Bullet b = tempBullet.AddComponent<Bullet>();
                 b.SetSpeed(GameConstants.PLAYER_BULLET_SPEED);
                 b.SetEnemyBullet(false);
 
                 bulletPrefabObj = PrefabUtility.SaveAsPrefabAsset(tempBullet, bulletPrefabPath);
                 GameObject.DestroyImmediate(tempBullet);
+            }
+            else
+            {
+                // 기존 프리팹에 Rigidbody2D 누락 시 보정
+                if (bulletPrefabObj.GetComponent<Rigidbody2D>() == null)
+                {
+                    GameObject instance = (GameObject)PrefabUtility.InstantiatePrefab(bulletPrefabObj);
+                    Rigidbody2D rb = instance.AddComponent<Rigidbody2D>();
+                    rb.bodyType = RigidbodyType2D.Kinematic;
+                    rb.collisionDetectionMode = CollisionDetectionMode2D.Continuous;
+                    PrefabUtility.SaveAsPrefabAsset(instance, bulletPrefabPath);
+                    GameObject.DestroyImmediate(instance);
+                }
             }
             return bulletPrefabObj;
         }
@@ -402,12 +433,29 @@ namespace StarInvader.Editor
                 bc.isTrigger = true;
                 bc.size = new Vector2(0.16f, 0.4f);
 
+                Rigidbody2D rb = tempBullet.AddComponent<Rigidbody2D>();
+                rb.bodyType = RigidbodyType2D.Kinematic;
+                rb.collisionDetectionMode = CollisionDetectionMode2D.Continuous;
+
                 Bullet b = tempBullet.AddComponent<Bullet>();
                 b.SetSpeed(GameConstants.ENEMY_BULLET_SPEED);
                 b.SetEnemyBullet(true);
 
                 bulletPrefabObj = PrefabUtility.SaveAsPrefabAsset(tempBullet, bulletPrefabPath);
                 GameObject.DestroyImmediate(tempBullet);
+            }
+            else
+            {
+                // 기존 프리팹에 Rigidbody2D 누락 시 보정
+                if (bulletPrefabObj.GetComponent<Rigidbody2D>() == null)
+                {
+                    GameObject instance = (GameObject)PrefabUtility.InstantiatePrefab(bulletPrefabObj);
+                    Rigidbody2D rb = instance.AddComponent<Rigidbody2D>();
+                    rb.bodyType = RigidbodyType2D.Kinematic;
+                    rb.collisionDetectionMode = CollisionDetectionMode2D.Continuous;
+                    PrefabUtility.SaveAsPrefabAsset(instance, bulletPrefabPath);
+                    GameObject.DestroyImmediate(instance);
+                }
             }
             return bulletPrefabObj;
         }

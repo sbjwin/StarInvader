@@ -221,11 +221,17 @@ namespace StarInvader
 
         public void ClearFleet()
         {
+            CancelInvoke(nameof(SpawnFleet));
             foreach (var enemy in activeEnemies)
             {
                 if (enemy != null) Destroy(enemy.gameObject);
             }
             activeEnemies.Clear();
+        }
+
+        private void OnDisable()
+        {
+            CancelInvoke(nameof(SpawnFleet));
         }
     }
 }

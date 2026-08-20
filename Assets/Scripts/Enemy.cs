@@ -48,7 +48,11 @@ namespace StarInvader
         private void Die()
         {
             // 점수 추가
-            if (GameManager.Instance != null)
+            if (InGameController.Instance != null)
+            {
+                InGameController.Instance.AddScore(scoreValue);
+            }
+            else if (GameManager.Instance != null)
             {
                 GameManager.Instance.AddScore(scoreValue);
             }

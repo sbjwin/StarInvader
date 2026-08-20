@@ -51,6 +51,16 @@ namespace StarInvader
             OnLivesChanged?.Invoke(currentLives);
         }
 
+        public void ResetPlayer()
+        {
+            currentLives = maxLives;
+            isInvincible = false;
+            if (spriteRenderer != null) spriteRenderer.enabled = true;
+            gameObject.SetActive(true);
+            transform.position = new Vector3(0, GameConstants.PLAYER_START_Y, 0);
+            OnLivesChanged?.Invoke(currentLives);
+        }
+
         private void Update()
         {
             HandleMovement();
@@ -59,7 +69,7 @@ namespace StarInvader
 
         private void HandleMovement()
         {
-            float horizontalInput = Input.GetAxisRaw("Horizontal");
+            float horizontalInput = InputHelper.GetHorizontalAxis();
             Vector3 position = transform.position;
             position.x += horizontalInput * moveSpeed * Time.deltaTime;
             position.x = Mathf.Clamp(position.x, minX, maxX);
@@ -68,7 +78,7 @@ namespace StarInvader
 
         private void HandleShooting()
         {
-            if (Input.GetKey(KeyCode.Space) || Input.GetButton("Fire1"))
+            if (InputHelper.IsShootingHeld())
             {
                 if (Time.time >= lastShootTime + shootCooldown)
                 {

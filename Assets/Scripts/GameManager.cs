@@ -54,29 +54,29 @@ namespace StarInvader
             switch (currentState)
             {
                 case GameState.Title:
-                    if (Input.GetKeyDown(KeyCode.Space) || Input.GetButtonDown("Fire1"))
+                    if (InputHelper.IsActionPressed())
                     {
                         StartGame();
                     }
-                    else if (Input.GetKeyDown(KeyCode.R))
+                    else if (InputHelper.IsRankingPressed())
                     {
                         ShowRanking();
                     }
                     break;
 
                 case GameState.GameOver:
-                    if (Input.GetKeyDown(KeyCode.Space) || Input.GetButtonDown("Fire1"))
+                    if (InputHelper.IsActionPressed())
                     {
                         StartGame();
                     }
-                    else if (Input.GetKeyDown(KeyCode.Escape))
+                    else if (InputHelper.IsEscapePressed())
                     {
                         SetState(GameState.Title);
                     }
                     break;
 
                 case GameState.Ranking:
-                    if (Input.GetKeyDown(KeyCode.Escape) || Input.GetKeyDown(KeyCode.Space))
+                    if (InputHelper.IsEscapePressed() || InputHelper.IsActionPressed())
                     {
                         SetState(GameState.Title);
                     }
@@ -94,8 +94,7 @@ namespace StarInvader
 
             if (player != null)
             {
-                player.gameObject.SetActive(true);
-                player.transform.position = new Vector3(0, GameConstants.PLAYER_START_Y, 0);
+                player.ResetPlayer();
             }
 
             if (enemyFleet != null)
