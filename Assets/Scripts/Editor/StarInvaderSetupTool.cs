@@ -97,9 +97,7 @@ namespace StarInvader.Editor
             }
 
             Selection.activeGameObject = playerObj;
-            EditorUtility.DisplayDialog("Star Invader", "1단계 (카메라, 플레이어, 탄환) 구성이 완료되었습니다!
-
-유니티 상단의 [▶ (Play)] 버튼을 눌러 테스트해 보세요.", "확인");
+            EditorUtility.DisplayDialog("Star Invader", "1단계 (카메라, 플레이어, 탄환) 구성이 완료되었습니다!\n\n유니티 상단의 [Play (▶)] 버튼을 눌러 테스트해 보세요.", "확인");
         }
 
         private static Texture2D MakeColorTexture(int width, int height, Color col)
