@@ -11,7 +11,7 @@ namespace StarInvader
     }
 
     /// <summary>
-    /// 개별 적 기체 컴포넌트 (피격 시 점수 추가, 폭발 및 사운드 연동)
+    /// 개별 적 기체 컴포넌트 (피격 시 폭발 및 사운드 연동)
     /// </summary>
     public class Enemy : MonoBehaviour
     {
@@ -47,16 +47,6 @@ namespace StarInvader
 
         private void Die()
         {
-            // 점수 추가
-            if (InGameController.Instance != null)
-            {
-                InGameController.Instance.AddScore(scoreValue);
-            }
-            else if (GameManager.Instance != null)
-            {
-                GameManager.Instance.AddScore(scoreValue);
-            }
-
             // 폭발 이펙트 생성
             if (explosionPrefab != null)
             {
