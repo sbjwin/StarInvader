@@ -29,8 +29,8 @@ namespace StarInvader
         public const float ENEMY_SPACING_X = 0.75f;
         public const float ENEMY_SPACING_Y = 0.65f;
         public const float ENEMY_START_Y = 3.5f;
-        public const float ENEMY_BASE_SPEED_X = 1.8f;
-        public const float ENEMY_DROP_DISTANCE = 0.35f;
+        public const float ENEMY_BASE_SPEED_X = 1.3f;
+        public const float ENEMY_DROP_DISTANCE = 0.18f;
         public const int SCORE_PER_ENEMY = 100;
         public const float INVASION_Y_LIMIT = -3.2f;
 

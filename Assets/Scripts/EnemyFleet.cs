@@ -16,7 +16,7 @@ namespace StarInvader
 
         [Header("이동 설정")]
         [SerializeField] private float baseSpeed = GameConstants.ENEMY_BASE_SPEED_X;
-        [SerializeField] private float maxSpeed = 5.5f;
+        [SerializeField] private float maxSpeed = 3.6f;
         [SerializeField] private float dropDistance = GameConstants.ENEMY_DROP_DISTANCE;
         [SerializeField] private float boundaryX = GameConstants.SCREEN_WIDTH_HALF - 0.3f;
         [SerializeField] private float invasionYLimit = GameConstants.INVASION_Y_LIMIT;

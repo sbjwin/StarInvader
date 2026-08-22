@@ -362,6 +362,7 @@ namespace StarInvader.Editor
                 serFleet.FindProperty("bottomEnemyPrefab").objectReferenceValue = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Prefabs/Enemy_Bottom.prefab");
                 serFleet.FindProperty("enemyBulletPrefab").objectReferenceValue = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Prefabs/EnemyBullet.prefab");
                 serFleet.FindProperty("baseSpeed").floatValue = GameConstants.ENEMY_BASE_SPEED_X;
+                serFleet.FindProperty("maxSpeed").floatValue = 3.6f;
                 serFleet.FindProperty("dropDistance").floatValue = GameConstants.ENEMY_DROP_DISTANCE;
                 serFleet.FindProperty("invasionYLimit").floatValue = GameConstants.INVASION_Y_LIMIT;
                 serFleet.FindProperty("shootIntervalMin").floatValue = 0.8f;
