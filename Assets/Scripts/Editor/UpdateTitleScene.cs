@@ -54,7 +54,7 @@ namespace StarInvader.Editor
             logoRt.anchorMax = new Vector2(0.5f, 0.5f);
             logoRt.pivot = new Vector2(0.5f, 0.5f);
             logoRt.anchoredPosition = new Vector2(0, 190);
-            logoRt.sizeDelta = new Vector2(480, 240);
+            logoRt.sizeDelta = new Vector2(480, 200);
 
             Image logoImg = logoObj.AddComponent<Image>();
             logoImg.sprite = transparentLogoSprite;
@@ -70,7 +70,7 @@ namespace StarInvader.Editor
             boxRt.anchorMax = new Vector2(0.5f, 0.5f);
             boxRt.pivot = new Vector2(0.5f, 0.5f);
             boxRt.anchoredPosition = new Vector2(0, -115);
-            boxRt.sizeDelta = new Vector2(500, 310);
+            boxRt.sizeDelta = new Vector2(500, 280);
 
             Image boxBg = infoBox.AddComponent<Image>();
             boxBg.sprite = neonBoxSprite;
