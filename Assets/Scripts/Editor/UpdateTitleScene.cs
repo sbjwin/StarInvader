@@ -53,8 +53,8 @@ namespace StarInvader.Editor
             logoRt.anchorMin = new Vector2(0.5f, 0.5f);
             logoRt.anchorMax = new Vector2(0.5f, 0.5f);
             logoRt.pivot = new Vector2(0.5f, 0.5f);
-            logoRt.anchoredPosition = new Vector2(0, 190);
-            logoRt.sizeDelta = new Vector2(480, 200);
+            logoRt.anchoredPosition = new Vector2(0, 175);
+            logoRt.sizeDelta = new Vector2(432, 180);
 
             Image logoImg = logoObj.AddComponent<Image>();
             logoImg.sprite = transparentLogoSprite;
@@ -69,8 +69,8 @@ namespace StarInvader.Editor
             boxRt.anchorMin = new Vector2(0.5f, 0.5f);
             boxRt.anchorMax = new Vector2(0.5f, 0.5f);
             boxRt.pivot = new Vector2(0.5f, 0.5f);
-            boxRt.anchoredPosition = new Vector2(0, -115);
-            boxRt.sizeDelta = new Vector2(500, 280);
+            boxRt.anchoredPosition = new Vector2(0, -90);
+            boxRt.sizeDelta = new Vector2(450, 252);
 
             Image boxBg = infoBox.AddComponent<Image>();
             boxBg.sprite = neonBoxSprite;
@@ -78,22 +78,22 @@ namespace StarInvader.Editor
             boxBg.color = Color.white; // 스프라이트 자체에 컬러/알파/테두리가 들어감
 
             // 4-1. [ SPACE ] 키를 눌러 출격 (골드/옐로우 헤더)
-            CreateUIText(infoBox.transform, "HeaderPrompt", "[ SPACE ] 키를 눌러 출격", new Vector2(0, 98), 24, new Color(1.0f, 0.88f, 0.15f), FontStyle.Bold);
+            CreateUIText(infoBox.transform, "HeaderPrompt", "[ SPACE ] 키를 눌러 출격", new Vector2(0, 86), 22, new Color(1.0f, 0.88f, 0.15f), FontStyle.Bold);
 
             // 4-2. 조작법 (부드러운 화이트)
-            CreateUIText(infoBox.transform, "ControlText", "조작법: [ ← / → ] 또는 [ A / D ] 키로 좌우 이동", new Vector2(0, 48), 17, new Color(0.88f, 0.93f, 1.0f));
+            CreateUIText(infoBox.transform, "ControlText", "조작법: [ ← / → ] 또는 [ A / D ] 키로 좌우 이동", new Vector2(0, 44), 15, new Color(0.88f, 0.93f, 1.0f));
 
             // 4-3. 사격 (네온 스카이블루)
-            CreateUIText(infoBox.transform, "ShootText", "사격: [ SPACE ] 키 (레이저 발사음 효과)", new Vector2(0, 10), 17, new Color(0.45f, 0.82f, 1.0f));
+            CreateUIText(infoBox.transform, "ShootText", "사격: [ SPACE ] 키 (레이저 발사음 효과)", new Vector2(0, 10), 15, new Color(0.45f, 0.82f, 1.0f));
 
             // 4-4. 시작 생명 (네온 민트그린)
-            CreateUIText(infoBox.transform, "LivesInfoText", "시작 생명: 3개 (우측 상단에 표시)", new Vector2(0, -28), 17, new Color(0.25f, 0.95f, 0.55f));
+            CreateUIText(infoBox.transform, "LivesInfoText", "시작 생명: 3개 (우측 상단에 표시)", new Vector2(0, -24), 15, new Color(0.25f, 0.95f, 0.55f));
 
             // 4-5. 랭킹 등록 안내 (오렌지/골드)
-            CreateUIText(infoBox.transform, "RankingHintText", "게임 종료 후 3글자 이니셜을 등록하여 랭킹에 도전하세요!", new Vector2(0, -68), 16, new Color(1.0f, 0.65f, 0.2f));
+            CreateUIText(infoBox.transform, "RankingHintText", "게임 종료 후 3글자 이니셜을 등록하여 랭킹에 도전하세요!", new Vector2(0, -58), 14, new Color(1.0f, 0.65f, 0.2f));
 
             // 4-6. [R] 키 랭킹 힌트 (서브)
-            CreateUIText(infoBox.transform, "RankingKeyText", "[ R ] 키를 눌러 랭킹 확인", new Vector2(0, -102), 15, new Color(0.7f, 0.8f, 0.9f));
+            CreateUIText(infoBox.transform, "RankingKeyText", "[ R ] 키를 눌러 랭킹 확인", new Vector2(0, -90), 14, new Color(0.7f, 0.8f, 0.9f));
 
             // 5. Ranking Modal Panel
             GameObject rankingPanel = new GameObject("RankingModalPanel");
