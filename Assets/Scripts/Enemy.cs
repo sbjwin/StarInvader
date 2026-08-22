@@ -59,6 +59,12 @@ namespace StarInvader
                 SoundManager.Instance.PlayExplosionSound();
             }
 
+            // 점수 가산
+            if (InGameController.Instance != null)
+            {
+                InGameController.Instance.AddScore(scoreValue);
+            }
+
             OnDestroyed?.Invoke(this);
             Destroy(gameObject);
         }
