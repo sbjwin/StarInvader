@@ -318,7 +318,7 @@ MonoBehaviour:
   m_GameObject: {fileID: 182015769}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 9edb304b0c73e394682ec894fb2cbe32, type: 3}
+  m_Script: {fileID: 11500000, guid: 56ab7890123456789abcdef012345678, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::StarInvader.GameOverController
   finalScoreText: {fileID: 196680663}

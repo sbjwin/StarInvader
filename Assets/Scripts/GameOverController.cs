@@ -1,3 +1,4 @@
+using System.Collections;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
@@ -12,6 +13,8 @@ namespace StarInvader
         [Header("UI 텍스트")]
         [SerializeField] private Text finalScoreText;
         [SerializeField] private Text newRecordText;
+
+        private bool canAcceptInput = false;
 
         private void Start()
         {
@@ -33,16 +36,29 @@ namespace StarInvader
             {
                 newRecordText.gameObject.SetActive(isNewRecord);
             }
+
+            // 게임오버 직후 스페이스바 연타로 인한 즉시 재시작 방지 (0.35초 딜레이)
+            StartCoroutine(EnableInputRoutine());
+        }
+
+        private IEnumerator EnableInputRoutine()
+        {
+            yield return new WaitForSeconds(0.35f);
+            canAcceptInput = true;
         }
 
         private void Update()
         {
+            if (!canAcceptInput) return;
+
             if (InputHelper.IsActionPressed())
             {
+                Debug.Log("[StarInvader] GameOverScene -> Restarting GameScene...");
                 RestartGame();
             }
             else if (InputHelper.IsEscapePressed())
             {
+                Debug.Log("[StarInvader] GameOverScene -> Returning to TitleScene...");
                 GoToTitle();
             }
         }
