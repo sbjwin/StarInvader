@@ -3,6 +3,7 @@ using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
 using UnityEngine.SceneManagement;
+using UnityEngine.UI;
 
 namespace StarInvader.Editor
 {
@@ -14,10 +15,13 @@ namespace StarInvader.Editor
             EditorApplication.delayCall += ProcessAllSpritesAndFixGameScene;
         }
 
-        [MenuItem("Star Invader/인게임 스프라이트 크기 및 투명도 완벽 보정", false, 2)]
+        [MenuItem("Star Invader/인게임 스프라이트 크기, 탄환 및 사운드 시스템 완벽 보정", false, 2)]
         public static void ProcessAllSpritesAndFixGameScene()
         {
-            // 1. 플레이어 및 적, 이펙트 스프라이트 검은색 배경 투명화 및 PPU 설정
+            // 1. 탄환 텍스처 생성 (플레이어 네온 시안 빔, 적 네온 레드 펄스 빔)
+            CreateBulletSprites();
+
+            // 2. 플레이어 및 적, 이펙트 스프라이트 검은색 배경 투명화 및 PPU 설정
             ProcessSprite("Assets/GameAssets/images/player/player.png", 1450f, true);
             ProcessSprite("Assets/GameAssets/images/enemy/enemy_top.png", 1700f, true);
             ProcessSprite("Assets/GameAssets/images/enemy/enemy_mid.png", 1700f, true);
@@ -27,16 +31,85 @@ namespace StarInvader.Editor
             ProcessSprite("Assets/GameAssets/images/enemy/enemy_stealth.png", 1600f, true);
             ProcessSprite("Assets/GameAssets/images/effects/explosion.png", 1600f, true);
 
-            // 2. Prefabs 업데이트
+            // 3. Bullet & Enemy Prefabs 업데이트
+            UpdateBulletPrefabs();
             UpdateEnemyPrefabs();
 
-            // 3. GameScene 저장 및 업데이트
+            // 4. GameScene 저장 및 컴포넌트 재연결
             UpdateGameScene();
 
             AssetDatabase.SaveAssets();
             AssetDatabase.Refresh();
 
-            Debug.Log("<color=cyan>[StarInvader]</color> 플레이어 및 적 기체 스프라이트 크기(PPU)와 투명 배경이 완벽하게 보정되었습니다!");
+            Debug.Log("<color=cyan>[StarInvader]</color> 플레이어/적 탄환 스프라이트 생성, 프리팹 연결 및 인게임 시스템이 완벽하게 갱신되었습니다!");
+        }
+
+        private static void CreateBulletSprites()
+        {
+            string dir = "Assets/GameAssets/images/effects";
+            if (!Directory.Exists(dir)) Directory.CreateDirectory(dir);
+
+            // 플레이어 탄환 스프라이트 (8x24 픽셀 네온 시안/화이트 빔)
+            string playerBulletPath = "Assets/GameAssets/images/effects/bullet_player.png";
+            if (!File.Exists(playerBulletPath))
+            {
+                Texture2D tex = new Texture2D(8, 24, TextureFormat.RGBA32, false);
+                Color cyanGlow = new Color(0.0f, 0.95f, 1.0f, 0.9f);
+                Color whiteCore = new Color(1.0f, 1.0f, 1.0f, 1.0f);
+                Color outerGlow = new Color(0.0f, 0.5f, 1.0f, 0.4f);
+
+                for (int y = 0; y < 24; y++)
+                {
+                    for (int x = 0; x < 8; x++)
+                    {
+                        if (x >= 3 && x <= 4 && y >= 3 && y <= 20)
+                            tex.SetPixel(x, y, whiteCore);
+                        else if (x >= 2 && x <= 5 && y >= 1 && y <= 22)
+                            tex.SetPixel(x, y, cyanGlow);
+                        else if (x >= 1 && x <= 6)
+                            tex.SetPixel(x, y, outerGlow);
+                        else
+                            tex.SetPixel(x, y, Color.clear);
+                    }
+                }
+                tex.Apply();
+                File.WriteAllBytes(playerBulletPath, tex.EncodeToPNG());
+                Object.DestroyImmediate(tex);
+            }
+            ProcessSprite(playerBulletPath, 50f, false);
+
+            // 적 탄환 스프라이트 (8x24 픽셀 네온 레드/오렌지 지그재그 빔)
+            string enemyBulletPath = "Assets/GameAssets/images/effects/bullet_enemy.png";
+            if (!File.Exists(enemyBulletPath))
+            {
+                Texture2D tex = new Texture2D(8, 24, TextureFormat.RGBA32, false);
+                Color redGlow = new Color(1.0f, 0.15f, 0.2f, 0.95f);
+                Color yellowCore = new Color(1.0f, 0.9f, 0.3f, 1.0f);
+                Color outerGlow = new Color(1.0f, 0.3f, 0.0f, 0.4f);
+
+                for (int y = 0; y < 24; y++)
+                {
+                    for (int x = 0; x < 8; x++)
+                    {
+                        // 펄스 지그재그 형태
+                        int waveOffset = ((y / 4) % 2 == 0) ? 0 : 1;
+                        int centerX = 3 + waveOffset;
+
+                        if (x == centerX && y >= 2 && y <= 21)
+                            tex.SetPixel(x, y, yellowCore);
+                        else if (Mathf.Abs(x - centerX) <= 1 && y >= 1 && y <= 22)
+                            tex.SetPixel(x, y, redGlow);
+                        else if (Mathf.Abs(x - centerX) <= 2)
+                            tex.SetPixel(x, y, outerGlow);
+                        else
+                            tex.SetPixel(x, y, Color.clear);
+                    }
+                }
+                tex.Apply();
+                File.WriteAllBytes(enemyBulletPath, tex.EncodeToPNG());
+                Object.DestroyImmediate(tex);
+            }
+            ProcessSprite(enemyBulletPath, 50f, false);
         }
 
         private static void ProcessSprite(string assetPath, float ppu, bool removeBlackBg)
@@ -49,15 +122,12 @@ namespace StarInvader.Editor
                 Texture2D tempTex = new Texture2D(2, 2);
                 if (tempTex.LoadImage(rawBytes))
                 {
-                    int w = tempTex.width;
-                    int h = tempTex.height;
                     Color[] pixels = tempTex.GetPixels();
                     bool modified = false;
 
                     for (int i = 0; i < pixels.Length; i++)
                     {
                         Color c = pixels[i];
-                        // 검은색 배경(RGB합이 0.08 미만)을 투명 알파로 변환
                         if (c.a > 0.5f && c.r < 0.08f && c.g < 0.08f && c.b < 0.08f)
                         {
                             pixels[i] = new Color(0, 0, 0, 0);
@@ -84,9 +154,84 @@ namespace StarInvader.Editor
                 importer.spriteImportMode = SpriteImportMode.Single;
                 importer.spritePixelsPerUnit = ppu;
                 importer.alphaIsTransparency = true;
-                importer.filterMode = FilterMode.Point; // 픽셀 아트 선명도 유지
+                importer.filterMode = FilterMode.Point;
                 importer.textureCompression = TextureImporterCompression.Uncompressed;
                 importer.SaveAndReimport();
+            }
+        }
+
+        private static void UpdateBulletPrefabs()
+        {
+            // PlayerBullet.prefab
+            string pbPath = "Assets/Prefabs/PlayerBullet.prefab";
+            GameObject pbPrefab = AssetDatabase.LoadAssetAtPath<GameObject>(pbPath);
+            Sprite pbSprite = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/GameAssets/images/effects/bullet_player.png");
+
+            if (pbPrefab != null && pbSprite != null)
+            {
+                GameObject instance = PrefabUtility.InstantiatePrefab(pbPrefab) as GameObject;
+                if (instance != null)
+                {
+                    SpriteRenderer sr = instance.GetComponent<SpriteRenderer>();
+                    if (sr != null)
+                    {
+                        sr.sprite = pbSprite;
+                        sr.color = Color.white;
+                        sr.sortingOrder = 10;
+                    }
+                    BoxCollider2D col = instance.GetComponent<BoxCollider2D>();
+                    if (col != null)
+                    {
+                        col.size = new Vector2(0.18f, 0.45f);
+                        col.isTrigger = true;
+                    }
+                    Bullet bullet = instance.GetComponent<Bullet>();
+                    if (bullet != null)
+                    {
+                        SerializedObject sObj = new SerializedObject(bullet);
+                        sObj.FindProperty("isEnemyBullet").boolValue = false;
+                        sObj.FindProperty("speed").floatValue = GameConstants.PLAYER_BULLET_SPEED;
+                        sObj.ApplyModifiedProperties();
+                    }
+                    PrefabUtility.SaveAsPrefabAsset(instance, pbPath);
+                    Object.DestroyImmediate(instance);
+                }
+            }
+
+            // EnemyBullet.prefab
+            string ebPath = "Assets/Prefabs/EnemyBullet.prefab";
+            GameObject ebPrefab = AssetDatabase.LoadAssetAtPath<GameObject>(ebPath);
+            Sprite ebSprite = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/GameAssets/images/effects/bullet_enemy.png");
+
+            if (ebPrefab != null && ebSprite != null)
+            {
+                GameObject instance = PrefabUtility.InstantiatePrefab(ebPrefab) as GameObject;
+                if (instance != null)
+                {
+                    SpriteRenderer sr = instance.GetComponent<SpriteRenderer>();
+                    if (sr != null)
+                    {
+                        sr.sprite = ebSprite;
+                        sr.color = Color.white;
+                        sr.sortingOrder = 10;
+                    }
+                    BoxCollider2D col = instance.GetComponent<BoxCollider2D>();
+                    if (col != null)
+                    {
+                        col.size = new Vector2(0.18f, 0.45f);
+                        col.isTrigger = true;
+                    }
+                    Bullet bullet = instance.GetComponent<Bullet>();
+                    if (bullet != null)
+                    {
+                        SerializedObject sObj = new SerializedObject(bullet);
+                        sObj.FindProperty("isEnemyBullet").boolValue = true;
+                        sObj.FindProperty("speed").floatValue = GameConstants.ENEMY_BULLET_SPEED;
+                        sObj.ApplyModifiedProperties();
+                    }
+                    PrefabUtility.SaveAsPrefabAsset(instance, ebPath);
+                    Object.DestroyImmediate(instance);
+                }
             }
         }
 
@@ -113,6 +258,7 @@ namespace StarInvader.Editor
                 if (sr != null)
                 {
                     sr.sprite = sprite;
+                    sr.sortingOrder = 5;
                 }
                 instance.transform.localScale = Vector3.one;
 
@@ -126,7 +272,7 @@ namespace StarInvader.Editor
             string gameScenePath = "Assets/Scenes/GameScene.unity";
             Scene scene = EditorSceneManager.OpenScene(gameScenePath, OpenSceneMode.Single);
 
-            // 1. Background 재구성 (우주 은하수 배경 + 스크롤러)
+            // 1. Background (우주 은하수 배경 + 스크롤러)
             GameObject oldBg = GameObject.Find("Background");
             if (oldBg != null) Object.DestroyImmediate(oldBg);
 
@@ -156,48 +302,99 @@ namespace StarInvader.Editor
             serializedBg.FindProperty("resetHeight").floatValue = 10f;
             serializedBg.ApplyModifiedProperties();
 
-            // 2. Player 스프라이트 및 설정 확인
+            // 2. Player 설정 및 PlayerBullet 프리팹 연결
             GameObject playerObj = GameObject.Find("Player");
-            if (playerObj != null)
+            if (playerObj == null)
             {
-                SpriteRenderer sr = playerObj.GetComponent<SpriteRenderer>();
-                if (sr != null)
-                {
-                    Sprite playerSprite = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/GameAssets/images/player/player.png");
-                    if (playerSprite != null) sr.sprite = playerSprite;
-                    sr.sortingOrder = 5;
-                }
-                playerObj.transform.localScale = Vector3.one;
-                playerObj.transform.position = new Vector3(0, GameConstants.PLAYER_START_Y, 0);
-
-                BoxCollider2D col = playerObj.GetComponent<BoxCollider2D>();
-                if (col != null)
-                {
-                    col.size = new Vector2(0.5f, 0.4f);
-                    col.isTrigger = true;
-                }
+                playerObj = new GameObject("Player");
+                playerObj.AddComponent<SpriteRenderer>();
+                playerObj.AddComponent<BoxCollider2D>();
+                playerObj.AddComponent<PlayerController>();
             }
 
-            // 3. EnemyFleet 프리팹 재연결 확인
+            SpriteRenderer playerSr = playerObj.GetComponent<SpriteRenderer>();
+            if (playerSr != null)
+            {
+                Sprite playerSprite = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/GameAssets/images/player/player.png");
+                if (playerSprite != null) playerSr.sprite = playerSprite;
+                playerSr.sortingOrder = 5;
+            }
+            playerObj.transform.localScale = Vector3.one;
+            playerObj.transform.position = new Vector3(0, GameConstants.PLAYER_START_Y, 0);
+
+            BoxCollider2D pCol = playerObj.GetComponent<BoxCollider2D>();
+            if (pCol != null)
+            {
+                pCol.size = new Vector2(0.5f, 0.4f);
+                pCol.isTrigger = true;
+            }
+
+            PlayerController playerCtrl = playerObj.GetComponent<PlayerController>();
+            if (playerCtrl != null)
+            {
+                SerializedObject serPlayer = new SerializedObject(playerCtrl);
+                GameObject pbPrefab = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Prefabs/PlayerBullet.prefab");
+                serPlayer.FindProperty("bulletPrefab").objectReferenceValue = pbPrefab;
+                serPlayer.FindProperty("moveSpeed").floatValue = GameConstants.PLAYER_SPEED;
+                serPlayer.FindProperty("shootCooldown").floatValue = GameConstants.PLAYER_SHOOT_COOLDOWN;
+                serPlayer.FindProperty("maxConcurrentBullets").intValue = GameConstants.PLAYER_MAX_BULLETS;
+                serPlayer.ApplyModifiedProperties();
+            }
+
+            // 3. EnemyFleet 프리팹 재연결
             GameObject fleetObj = GameObject.Find("EnemyFleet");
-            if (fleetObj != null)
+            if (fleetObj == null)
             {
-                fleetObj.transform.position = Vector3.zero;
-                fleetObj.transform.localScale = Vector3.one;
-
-                EnemyFleet fleet = fleetObj.GetComponent<EnemyFleet>();
-                if (fleet != null)
-                {
-                    SerializedObject serFleet = new SerializedObject(fleet);
-                    serFleet.FindProperty("topEnemyPrefab").objectReferenceValue = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Prefabs/Enemy_Top.prefab");
-                    serFleet.FindProperty("midEnemyPrefab").objectReferenceValue = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Prefabs/Enemy_Mid.prefab");
-                    serFleet.FindProperty("bottomEnemyPrefab").objectReferenceValue = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Prefabs/Enemy_Bottom.prefab");
-                    serFleet.FindProperty("enemyBulletPrefab").objectReferenceValue = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Prefabs/EnemyBullet.prefab");
-                    serFleet.ApplyModifiedProperties();
-                }
+                fleetObj = new GameObject("EnemyFleet");
+                fleetObj.AddComponent<EnemyFleet>();
             }
 
-            // 4. Global Managers 보장
+            fleetObj.transform.position = Vector3.zero;
+            fleetObj.transform.localScale = Vector3.one;
+
+            EnemyFleet fleet = fleetObj.GetComponent<EnemyFleet>();
+            if (fleet != null)
+            {
+                SerializedObject serFleet = new SerializedObject(fleet);
+                serFleet.FindProperty("topEnemyPrefab").objectReferenceValue = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Prefabs/Enemy_Top.prefab");
+                serFleet.FindProperty("midEnemyPrefab").objectReferenceValue = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Prefabs/Enemy_Mid.prefab");
+                serFleet.FindProperty("bottomEnemyPrefab").objectReferenceValue = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Prefabs/Enemy_Bottom.prefab");
+                serFleet.FindProperty("enemyBulletPrefab").objectReferenceValue = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Prefabs/EnemyBullet.prefab");
+                serFleet.FindProperty("baseSpeed").floatValue = GameConstants.ENEMY_BASE_SPEED_X;
+                serFleet.FindProperty("dropDistance").floatValue = GameConstants.ENEMY_DROP_DISTANCE;
+                serFleet.FindProperty("invasionYLimit").floatValue = GameConstants.INVASION_Y_LIMIT;
+                serFleet.FindProperty("shootIntervalMin").floatValue = 0.8f;
+                serFleet.FindProperty("shootIntervalMax").floatValue = 2.0f;
+                serFleet.ApplyModifiedProperties();
+            }
+
+            // 4. InGameController 연결
+            GameObject igcObj = GameObject.Find("InGameController");
+            if (igcObj == null)
+            {
+                igcObj = new GameObject("InGameController");
+                igcObj.AddComponent<InGameController>();
+            }
+            InGameController igc = igcObj.GetComponent<InGameController>();
+            if (igc != null)
+            {
+                SerializedObject serIgc = new SerializedObject(igc);
+                serIgc.FindProperty("player").objectReferenceValue = playerCtrl;
+                serIgc.FindProperty("enemyFleet").objectReferenceValue = fleet;
+
+                // UI Text 매핑
+                GameObject scoreObj = GameObject.Find("ScoreText");
+                GameObject hiScoreObj = GameObject.Find("HighScoreText");
+                GameObject livesObj = GameObject.Find("LivesText");
+
+                if (scoreObj != null) serIgc.FindProperty("scoreText").objectReferenceValue = scoreObj.GetComponent<Text>();
+                if (hiScoreObj != null) serIgc.FindProperty("highScoreText").objectReferenceValue = hiScoreObj.GetComponent<Text>();
+                if (livesObj != null) serIgc.FindProperty("livesText").objectReferenceValue = livesObj.GetComponent<Text>();
+
+                serIgc.ApplyModifiedProperties();
+            }
+
+            // 5. Global Managers 보장
             if (GameObject.Find("GameDataManager") == null)
             {
                 GameObject gdm = new GameObject("GameDataManager");
@@ -215,6 +412,19 @@ namespace StarInvader.Editor
                     SerializedObject serSm = new SerializedObject(sm);
                     serSm.FindProperty("shootClip").objectReferenceValue = shootClip;
                     serSm.ApplyModifiedProperties();
+                }
+            }
+
+            // 6. Camera 확인
+            Camera mainCam = Camera.main;
+            if (mainCam != null)
+            {
+                mainCam.orthographic = true;
+                mainCam.orthographicSize = 5f;
+                mainCam.backgroundColor = Color.black;
+                if (mainCam.GetComponent<CameraShake>() == null)
+                {
+                    mainCam.gameObject.AddComponent<CameraShake>();
                 }
             }
 

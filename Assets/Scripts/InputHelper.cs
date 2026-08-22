@@ -15,20 +15,28 @@ namespace StarInvader
             float axis = 0f;
 
 #if ENABLE_INPUT_SYSTEM
-            if (Keyboard.current != null)
-            {
-                if (Keyboard.current.aKey.isPressed || Keyboard.current.leftArrowKey.isPressed) axis -= 1f;
-                if (Keyboard.current.dKey.isPressed || Keyboard.current.rightArrowKey.isPressed) axis += 1f;
-            }
-#endif
-
-#if ENABLE_LEGACY_INPUT_MANAGER
             try
             {
-                if (axis == 0f) axis = Input.GetAxisRaw("Horizontal");
+                if (Keyboard.current != null)
+                {
+                    if (Keyboard.current.aKey.isPressed || Keyboard.current.leftArrowKey.isPressed) axis -= 1f;
+                    if (Keyboard.current.dKey.isPressed || Keyboard.current.rightArrowKey.isPressed) axis += 1f;
+                }
             }
             catch { }
 #endif
+
+            // Fallback to Legacy Input
+            if (axis == 0f)
+            {
+                try
+                {
+                    if (Input.GetKey(KeyCode.LeftArrow) || Input.GetKey(KeyCode.A)) axis -= 1f;
+                    if (Input.GetKey(KeyCode.RightArrow) || Input.GetKey(KeyCode.D)) axis += 1f;
+                    if (axis == 0f) axis = Input.GetAxisRaw("Horizontal");
+                }
+                catch { }
+            }
 
             return Mathf.Clamp(axis, -1f, 1f);
         }
@@ -36,23 +44,28 @@ namespace StarInvader
         public static bool IsShootingHeld()
         {
 #if ENABLE_INPUT_SYSTEM
-            if (Keyboard.current != null && (Keyboard.current.spaceKey.isPressed || Keyboard.current.enterKey.isPressed))
-            {
-                return true;
-            }
-            if (Mouse.current != null && Mouse.current.leftButton.isPressed)
-            {
-                return true;
-            }
-#endif
-
-#if ENABLE_LEGACY_INPUT_MANAGER
             try
             {
-                if (Input.GetKey(KeyCode.Space) || Input.GetButton("Fire1")) return true;
+                if (Keyboard.current != null && (Keyboard.current.spaceKey.isPressed || Keyboard.current.enterKey.isPressed))
+                {
+                    return true;
+                }
+                if (Mouse.current != null && Mouse.current.leftButton.isPressed)
+                {
+                    return true;
+                }
             }
             catch { }
 #endif
+
+            try
+            {
+                if (Input.GetKey(KeyCode.Space) || Input.GetKey(KeyCode.Return) || Input.GetButton("Fire1"))
+                {
+                    return true;
+                }
+            }
+            catch { }
 
             return false;
         }
@@ -60,23 +73,28 @@ namespace StarInvader
         public static bool IsActionPressed()
         {
 #if ENABLE_INPUT_SYSTEM
-            if (Keyboard.current != null && (Keyboard.current.spaceKey.wasPressedThisFrame || Keyboard.current.enterKey.wasPressedThisFrame))
-            {
-                return true;
-            }
-            if (Mouse.current != null && Mouse.current.leftButton.wasPressedThisFrame)
-            {
-                return true;
-            }
-#endif
-
-#if ENABLE_LEGACY_INPUT_MANAGER
             try
             {
-                if (Input.GetKeyDown(KeyCode.Space) || Input.GetKeyDown(KeyCode.Return) || Input.GetButtonDown("Fire1")) return true;
+                if (Keyboard.current != null && (Keyboard.current.spaceKey.wasPressedThisFrame || Keyboard.current.enterKey.wasPressedThisFrame))
+                {
+                    return true;
+                }
+                if (Mouse.current != null && Mouse.current.leftButton.wasPressedThisFrame)
+                {
+                    return true;
+                }
             }
             catch { }
 #endif
+
+            try
+            {
+                if (Input.GetKeyDown(KeyCode.Space) || Input.GetKeyDown(KeyCode.Return) || Input.GetButtonDown("Fire1"))
+                {
+                    return true;
+                }
+            }
+            catch { }
 
             return false;
         }
@@ -84,19 +102,21 @@ namespace StarInvader
         public static bool IsRankingPressed()
         {
 #if ENABLE_INPUT_SYSTEM
-            if (Keyboard.current != null && Keyboard.current.rKey.wasPressedThisFrame)
+            try
             {
-                return true;
+                if (Keyboard.current != null && Keyboard.current.rKey.wasPressedThisFrame)
+                {
+                    return true;
+                }
             }
+            catch { }
 #endif
 
-#if ENABLE_LEGACY_INPUT_MANAGER
             try
             {
                 if (Input.GetKeyDown(KeyCode.R)) return true;
             }
             catch { }
-#endif
 
             return false;
         }
@@ -104,19 +124,21 @@ namespace StarInvader
         public static bool IsEscapePressed()
         {
 #if ENABLE_INPUT_SYSTEM
-            if (Keyboard.current != null && Keyboard.current.escapeKey.wasPressedThisFrame)
+            try
             {
-                return true;
+                if (Keyboard.current != null && Keyboard.current.escapeKey.wasPressedThisFrame)
+                {
+                    return true;
+                }
             }
+            catch { }
 #endif
 
-#if ENABLE_LEGACY_INPUT_MANAGER
             try
             {
                 if (Input.GetKeyDown(KeyCode.Escape)) return true;
             }
             catch { }
-#endif
 
             return false;
         }

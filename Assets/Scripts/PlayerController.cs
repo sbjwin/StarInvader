@@ -78,7 +78,7 @@ namespace StarInvader
 
         private void HandleShooting()
         {
-            if (InputHelper.IsShootingHeld())
+            if (InputHelper.IsShootingHeld() || InputHelper.IsActionPressed())
             {
                 if (Time.time >= lastShootTime + shootCooldown)
                 {
@@ -86,7 +86,7 @@ namespace StarInvader
                     Bullet[] existingBullets = FindObjectsByType<Bullet>(FindObjectsSortMode.None);
                     foreach (var b in existingBullets)
                     {
-                        if (!b.IsEnemyBullet) activeBulletCount++;
+                        if (b != null && !b.IsEnemyBullet) activeBulletCount++;
                     }
 
                     if (activeBulletCount < maxConcurrentBullets)
@@ -100,10 +100,11 @@ namespace StarInvader
         private void Shoot()
         {
             lastShootTime = Time.time;
+            Vector3 spawnPos = firePoint != null ? firePoint.position : transform.position + new Vector3(0, 0.45f, 0);
 
             if (bulletPrefab != null)
             {
-                Instantiate(bulletPrefab, firePoint.position, Quaternion.identity);
+                Instantiate(bulletPrefab, spawnPos, Quaternion.identity);
             }
 
             // 발사음 재생

@@ -147,8 +147,14 @@ namespace StarInvader
             Enemy shooter = bottomEnemies[Random.Range(0, bottomEnemies.Count)];
             if (shooter != null && enemyBulletPrefab != null)
             {
-                Vector3 spawnPos = shooter.transform.position + Vector3.down * 0.3f;
+                Vector3 spawnPos = shooter.transform.position + Vector3.down * 0.35f;
                 Instantiate(enemyBulletPrefab, spawnPos, Quaternion.identity);
+
+                // 적 탄환 발사음 재생
+                if (SoundManager.Instance != null)
+                {
+                    SoundManager.Instance.PlayEnemyShootSound();
+                }
             }
         }
 
