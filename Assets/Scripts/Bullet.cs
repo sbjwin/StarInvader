@@ -12,6 +12,24 @@ namespace StarInvader
         [SerializeField] private float speed = GameConstants.PLAYER_BULLET_SPEED;
         [SerializeField] private int damage = 1;
 
+        public static int ActivePlayerBulletCount { get; private set; } = 0;
+
+        private void Awake()
+        {
+            if (!isEnemyBullet)
+            {
+                ActivePlayerBulletCount++;
+            }
+        }
+
+        private void OnDestroy()
+        {
+            if (!isEnemyBullet)
+            {
+                ActivePlayerBulletCount = Mathf.Max(0, ActivePlayerBulletCount - 1);
+            }
+        }
+
         private void Update()
         {
             // 이동 방향 (플레이어: 위쪽 +Y, 적: 아래쪽 -Y)
@@ -30,12 +48,22 @@ namespace StarInvader
         {
             if (!isEnemyBullet)
             {
-                // [플레이어 탄환] -> 적 피격
+                // [플레이어 탄환] -> 일반 적 피격
                 Enemy enemy = other.GetComponent<Enemy>();
                 if (enemy != null)
                 {
                     enemy.TakeDamage(damage);
                     Destroy(gameObject);
+                    return;
+                }
+
+                // [플레이어 탄환] -> 보너스 UFO 피격
+                BonusUfo ufo = other.GetComponent<BonusUfo>();
+                if (ufo != null)
+                {
+                    ufo.TakeDamage(damage);
+                    Destroy(gameObject);
+                    return;
                 }
             }
             else

@@ -6,7 +6,7 @@ using UnityEngine.UI;
 namespace StarInvader
 {
     /// <summary>
-    /// GameScene 전용 인게임 컨트롤러 (실시간 HUD 갱신, 점수 누적, 게임오버 판정 및 씬 전환)
+    /// GameScene 전용 인게임 컨트롤러 (실시간 HUD 갱신, 점수 콤보 배율, 보너스 UFO 스폰, 게임오버 판정 및 씬 전환)
     /// </summary>
     public class InGameController : MonoBehaviour
     {
@@ -15,15 +15,25 @@ namespace StarInvader
         [Header("참조 컴포넌트")]
         [SerializeField] private PlayerController player;
         [SerializeField] private EnemyFleet enemyFleet;
+        [SerializeField] private GameObject bonusUfoPrefab;
 
         [Header("HUD UI")]
         [SerializeField] private Text scoreText;
         [SerializeField] private Text highScoreText;
         [SerializeField] private Text livesText;
+        [SerializeField] private Text comboText;
+
+        [Header("콤보 설정")]
+        [SerializeField] private float comboDuration = 2.0f;
 
         private int currentScore = 0;
         private int highScore = 0;
         private bool isGameOverTriggered = false;
+
+        // 콤보 변수
+        private int currentCombo = 0;
+        private float comboTimer = 0f;
+        private Coroutine comboFadeCoroutine;
 
         private void Awake()
         {
@@ -46,14 +56,51 @@ namespace StarInvader
                 UpdateLivesUI(player.CurrentLives);
             }
 
+            if (comboText != null)
+            {
+                comboText.gameObject.SetActive(false);
+            }
+
             UpdateScoreUI();
+
+            // 보너스 UFO 스포너 시작
+            StartCoroutine(UfoSpawnerRoutine());
         }
 
-        public void AddScore(int amount)
+        private void Update()
+        {
+            // 콤보 타이머 관리
+            if (currentCombo > 0)
+            {
+                comboTimer -= Time.deltaTime;
+                if (comboTimer <= 0f)
+                {
+                    ResetCombo();
+                }
+            }
+        }
+
+        private void OnDestroy()
+        {
+            if (player != null)
+            {
+                player.OnLivesChanged -= HandleLivesChanged;
+                player.OnPlayerDied -= HandlePlayerDied;
+            }
+        }
+
+        public void AddScore(int baseAmount)
         {
             if (isGameOverTriggered) return;
 
-            currentScore += amount;
+            // 콤보 갱신
+            currentCombo++;
+            comboTimer = comboDuration;
+
+            int multiplier = Mathf.Min(currentCombo, 5); // 최대 5배
+            int finalScore = baseAmount * multiplier;
+
+            currentScore += finalScore;
             if (currentScore > highScore)
             {
                 highScore = currentScore;
@@ -64,7 +111,105 @@ namespace StarInvader
                 GameDataManager.Instance.CurrentScore = currentScore;
             }
 
+            // 콤보 사운드 및 UI 갱신 (2콤보 이상일 때)
+            if (multiplier >= 2)
+            {
+                if (SoundManager.Instance != null)
+                {
+                    float pitch = 1.0f + (multiplier - 1) * 0.15f;
+                    SoundManager.Instance.PlayComboSound(pitch);
+                }
+                ShowComboUI(multiplier);
+            }
+
             UpdateScoreUI();
+        }
+
+        private void ShowComboUI(int multiplier)
+        {
+            if (comboText == null) return;
+
+            comboText.text = $"COMBO x{multiplier}!";
+            comboText.gameObject.SetActive(true);
+
+            if (comboFadeCoroutine != null) StopCoroutine(comboFadeCoroutine);
+            comboFadeCoroutine = StartCoroutine(ComboFadeRoutine());
+        }
+
+        private IEnumerator ComboFadeRoutine()
+        {
+            if (comboText == null) yield break;
+
+            Color c = Color.yellow;
+            comboText.color = c;
+            yield return new WaitForSeconds(1.2f);
+
+            float t = 0f;
+            while (t < 0.4f)
+            {
+                t += Time.deltaTime;
+                c.a = Mathf.Lerp(1f, 0f, t / 0.4f);
+                comboText.color = c;
+                yield return null;
+            }
+            comboText.gameObject.SetActive(false);
+        }
+
+        private void ResetCombo()
+        {
+            currentCombo = 0;
+            if (comboText != null)
+            {
+                comboText.gameObject.SetActive(false);
+            }
+        }
+
+        public void ShowBonusScorePopup(Vector3 pos, int bonusScore)
+        {
+            // 보너스 점수 획득 시 콤보 UI에 표시
+            if (comboText != null)
+            {
+                comboText.text = $"+{bonusScore} BONUS!";
+                comboText.color = new Color(0.2f, 1.0f, 0.5f);
+                comboText.gameObject.SetActive(true);
+
+                if (comboFadeCoroutine != null) StopCoroutine(comboFadeCoroutine);
+                comboFadeCoroutine = StartCoroutine(ComboFadeRoutine());
+            }
+        }
+
+        private IEnumerator UfoSpawnerRoutine()
+        {
+            while (!isGameOverTriggered)
+            {
+                // 18~28초 랜덤 대기
+                float waitTime = Random.Range(18f, 28f);
+                yield return new WaitForSeconds(waitTime);
+
+                if (isGameOverTriggered) yield break;
+
+                SpawnBonusUfo();
+            }
+        }
+
+        private void SpawnBonusUfo()
+        {
+            // 이미 씬에 활성화된 UFO가 있으면 스킵
+            if (FindAnyObjectByType<BonusUfo>() != null) return;
+
+            int dir = Random.value > 0.5f ? 1 : -1;
+            float spawnX = dir > 0 ? -GameConstants.SCREEN_WIDTH_HALF - 0.8f : GameConstants.SCREEN_WIDTH_HALF + 0.8f;
+            Vector3 spawnPos = new Vector3(spawnX, 4.15f, 0);
+
+            if (bonusUfoPrefab != null)
+            {
+                GameObject ufoObj = Instantiate(bonusUfoPrefab, spawnPos, Quaternion.identity);
+                BonusUfo ufoComp = ufoObj.GetComponent<BonusUfo>();
+                if (ufoComp != null)
+                {
+                    ufoComp.Initialize(dir, 3.2f);
+                }
+            }
         }
 
         private void HandleLivesChanged(int lives)
@@ -81,6 +226,11 @@ namespace StarInvader
         {
             if (isGameOverTriggered) return;
             isGameOverTriggered = true;
+
+            if (SoundManager.Instance != null)
+            {
+                SoundManager.Instance.StopUfoSound();
+            }
 
             if (GameDataManager.Instance != null)
             {

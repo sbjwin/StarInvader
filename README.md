@@ -4,12 +4,13 @@
 
 ![Unity Version](https://img.shields.io/badge/Unity-6000.3.22f1%20(Unity%206)-blue.svg?style=for-the-badge&logo=unity)
 ![C#](https://img.shields.io/badge/Language-C%23%209.0-239120.svg?style=for-the-badge&logo=c-sharp)
+![Version](https://img.shields.io/badge/Release-v0.2-orange.svg?style=for-the-badge)
 ![Platform](https://img.shields.io/badge/Platform-Standalone%20PC%20%2F%20Windows-lightgrey.svg?style=for-the-badge)
 ![License](https://img.shields.io/badge/License-MIT-green.svg?style=for-the-badge)
 
 <br>
 
-**클래식 아케이드 감성의 스페이스 인베이더를 현대적인 Unity 6 컴포넌트 기반 아키텍처로 재해석한 2D 레트로 슈팅 게임입니다.**
+**클래식 아케이드 감성의 스페이스 인베이더를 현대적인 Unity 6 컴포넌트 기반 아키텍처와 절차적 신스 오디오로 재해석한 2D 레트로 슈팅 게임입니다.**
 
 </div>
 
@@ -24,15 +25,18 @@
 
 ---
 
-## 🎮 게임 소개 (Game Overview)
+## 🎮 게임 주요 특징 (v0.2 Key Features)
 
-**Star Invader**는 지구를 침략하려는 외계 편대(Alien Fleet)의 공습을 저지하는 클래식 2D 아케이드 슈팅 게임입니다. 
+**Star Invader**는 지구를 침략하려는 외계 편대(Alien Fleet)와 미스터리 모함의 공습을 저지하는 클래식 2D 아케이드 슈팅 게임입니다. 
 
-* **동기화된 적 편대 AI:** 3행 × 8열(총 24기)의 적들이 좌우로 이동하며 벽에 부딪힐 때마다 하강합니다. 적 기체가 파괴될수록 편대 이동 속도가 가속됩니다.
-* **최하단 적의 탄환 반격:** 각 열의 최하단에 위치한 적들이 주기적으로 레이저 탄환을 발사합니다.
-* **플레이어 라이프 & 무적 연출:** 시작 목숨 3개가 주어지며, 피격 시 화면 진동(`CameraShake`)과 1.2초간의 무적 깜빡임 연출이 발동됩니다.
-* **절차적 신스 사운드 시스템:** 오디오 에셋 누락 시에도 실시간 절차적 알고리즘으로 신스 폭발음을 합성하여 재생합니다.
-* **로컬 JSON 랭킹 시스템:** 게임오버 시 최고 기록을 갱신하고 상위 TOP 5 점수를 로컬 JSON 파일에 영구 보존합니다.
+* **🛸 상단 보너스 외계인 모함 (Mystery UFO):** 18~28초 주기로 화면 상단을 고속 횡단하는 보너스 UFO 출현. 전용 워블 사이렌 및 격추 시 500~1,500점 랜덤 대박 점수와 팡파레 SFX 제공.
+* **🔥 연속 처치 점수 콤보 (Combo Multiplier):** 2초 이내 연속 격추 시 `COMBO x2` ~ `COMBO x5` 배율이 적용되어 박진감 넘치는 플레이 유도.
+* **⚡ 피격 화이트 플래시 타격감 (Hit Flash):** 적 피격 시 0.06초간 눈부신 순백색으로 반짝이는 정통 아케이드 타격 피드백 연출.
+* **👾 동기화된 적 편대 AI:** 3행 × 8열(총 24기)의 적들이 좌우로 이동하며 벽에 부딪힐 때마다 하강. 적 기체가 파괴될수록 편대 이동 속도가 가속.
+* **최하단 적의 탄환 반격:** 각 열의 최하단에 위치한 적들이 주기적으로 네온 레드 펄스 레이저를 발사.
+* **플레이어 라이프 & 무적 연출:** 시작 목숨 3개가 주어지며, 피격 시 화면 진동(`CameraShake`)과 1.2초간의 무적 깜빡임 연출 발동.
+* **🔊 100% 절차적 신스 오디오 (Pure Synthesized SFX):** 외부 오디오 파일 없이도 플레이어 레이저, 적 펄스 레이저, 폭발음, 타격음, UFO 사이렌, 콤보 핑, 보너스 팡파레를 실시간 C# 수학 알고리즘으로 합성하여 완벽 재생.
+* **🏆 로컬 JSON 랭킹 시스템:** 게임오버 시 최고 기록을 갱신하고 상위 TOP 5 점수를 로컬 JSON 파일에 영구 보존.
 
 ---
 
@@ -55,7 +59,7 @@
 
 ```mermaid
 graph LR
-    A["🎬 TitleScene<br>(타이틀 & TOP 5 랭킹)"] -->|SPACE / Action| B["🚀 GameScene<br>(인게임 슈팅 & HUD)"]
+    A["🎬 TitleScene<br>(타이틀 & TOP 5 랭킹)"] -->|SPACE / Action| B["🚀 GameScene<br>(인게임 슈팅 & UFO & 콤보 HUD)"]
     B -->|플레이어 사망 / 침략선 돌파| C["💀 GameOverScene<br>(최종 점수 & 신기록)"]
     C -->|SPACE| B
     C -->|ESC| A
@@ -65,32 +69,18 @@ graph LR
     D -.->|최종 결과 전달| C
 ```
 
-### 주요 씬별 역할
-1. **`TitleScene.unity`**: 네온 타이틀 로고, 시작 안내, 로컬 TOP 5 랭킹 팝업 모달
-2. **`GameScene.unity`**: 플레이어 이동/사격, 24기 적 편대 알고리즘, 실시간 HUD(Score, High-Score, Lives)
-3. **`GameOverScene.unity`**: 최종 점수, 신기록(★ NEW RECORD! ★) 판정, 원클릭 재도전
-
 ---
 
-## 🚀 빠른 시작 및 테스트 가이드 (How to Clone & Run)
-
-### 1. 레포지토리 클론
-터미널 또는 Git Bash에서 아래 명령어를 실행합니다.
+## 🚀 빠른 시작 가이드 (How to Clone & Run)
 
 ```bash
+# 레포지토리 클론
 git clone https://github.com/sbjwin/StarInvader.git
 ```
 
-### 2. Unity Hub에서 프로젝트 열기
-1. **Unity Hub**를 실행합니다.
-2. 우측 상단의 **[열기(Open)]** ➡️ **[디스크에서 프로젝트 추가(Add project from disk)]**를 클릭합니다.
-3. 클론한 `StarInvader` 폴더를 선택합니다.
-4. **권장 에디터 버전:** `Unity 6 (6000.3.22f1)` 이상
-
-### 3. 게임 실행
-1. Unity Project 창에서 **`Assets/Scenes/TitleScene.unity`**를 더블 클릭하여 엽니다.
-2. 유니티 상단 가운데의 **`▶ (Play)`** 버튼을 누릅니다.
-3. **`Space`** 키를 눌러 게임을 시작합니다!
+1. **Unity Hub**에서 `StarInvader` 프로젝트 폴더를 엽니다 (`Unity 6 (6000.3.22f1)` 권장).
+2. **`Assets/Scenes/TitleScene.unity`**를 열고 상단의 **`▶ (Play)`** 버튼을 누릅니다.
+3. **`Space`** 키를 눌러 출격합니다!
 
 ---
 
@@ -101,26 +91,37 @@ StarInvader/
 ├── Assets/
 │   ├── GameAssets/          # 스프라이트 이미지, 폰트, SFX 오디오
 │   │   ├── images/
+│   │   │   ├── background/  # 우주 배경, 로고
+│   │   │   ├── effects/     # 플레이어/적 탄환, 폭발 스프라이트
+│   │   │   ├── enemy/       # Top/Mid/Bottom/UFO/Boss 기체
+│   │   │   ├── player/      # 플레이어 기체
+│   │   │   └── ui/          # 네온 프레임 박스
 │   │   └── sounds/
-│   ├── Prefabs/             # 플레이어/적 탄환, 폭발 이펙트, 적 기체 프리팹
+│   ├── Prefabs/             # 플레이어/적 탄환, 보너스 UFO, 폭발 이펙트 프리팹
+│   │   ├── BonusUfo.prefab
+│   │   ├── PlayerBullet.prefab
+│   │   ├── EnemyBullet.prefab
+│   │   └── ExplosionEffect.prefab
 │   ├── Scenes/              # 3단 멀티 씬
 │   │   ├── TitleScene.unity
 │   │   ├── GameScene.unity
 │   │   └── GameOverScene.unity
 │   └── Scripts/             # 핵심 C# 스크립트
+│       ├── BonusUfo.cs            # 상단 횡단 보너스 UFO 및 팡파레 연출
 │       ├── BackgroundScroller.cs  # 우주 배경 무한 스크롤
-│       ├── Bullet.cs              # 탄환 충돌 및 이동 (Kinematic Rigidbody2D)
+│       ├── Bullet.cs              # O(1) 정적 카운터 기반 탄환 충돌 & 이동
 │       ├── CameraShake.cs         # 피격 시 카메라 진동 연출
-│       ├── Enemy.cs               # 개별 적 기체 피격/폭발
+│       ├── Enemy.cs               # 개별 적 기체 피격 화이트 플래시 & 폭발
 │       ├── EnemyFleet.cs          # 24기 편대 제어 & 사격 AI
 │       ├── GameConstants.cs       # 게임 밸런스 상수 정의
 │       ├── GameDataManager.cs     # 글로벌 싱글톤 점수/랭킹 매니저
 │       ├── GameOverController.cs  # 게임오버 씬 제어
-│       ├── InGameController.cs    # 인게임 HUD 및 루프 제어
+│       ├── InGameController.cs    # 콤보 배율, UFO 스폰, HUD 제어
 │       ├── InputHelper.cs         # New/Old Input System 크로스 플랫폼 헬퍼
 │       ├── PlayerController.cs    # 플레이어 이동, 사격, 무적 코루틴
-│       ├── SoundManager.cs        # SFX 및 절차적 신스 오디오 매니저
-│       └── TitleController.cs     # 타이틀 씬 및 랭킹 모달 제어
+│       ├── SoundManager.cs        # 100% 절차적 신스 오디오 매니저
+│       ├── TitleController.cs     # 타이틀 씬 및 랭킹 모달 제어
+│       └── Editor/                # 스프라이트/씬 자동 보정 툴
 └── README.md
 ```
 

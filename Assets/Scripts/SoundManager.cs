@@ -14,8 +14,12 @@ namespace StarInvader
         [SerializeField] private AudioClip enemyShootClip;
         [SerializeField] private AudioClip explosionClip;
         [SerializeField] private AudioClip hitClip;
+        [SerializeField] private AudioClip ufoClip;
+        [SerializeField] private AudioClip bonusClip;
+        [SerializeField] private AudioClip comboClip;
 
         private AudioSource sfxSource;
+        private AudioSource ufoSource;
 
         private void Awake()
         {
@@ -31,17 +35,22 @@ namespace StarInvader
             }
 
             sfxSource = gameObject.GetComponent<AudioSource>();
-            if (sfxSource == null)
-            {
-                sfxSource = gameObject.AddComponent<AudioSource>();
-            }
+            if (sfxSource == null) sfxSource = gameObject.AddComponent<AudioSource>();
             sfxSource.playOnAwake = false;
+
+            // UFO 전용 루프 오디오 소스
+            ufoSource = gameObject.AddComponent<AudioSource>();
+            ufoSource.playOnAwake = false;
+            ufoSource.loop = true;
 
             // 오디오 클립이 없을 경우 절차적 신스 오디오 자동 생성
             if (shootClip == null) shootClip = GenerateProceduralPlayerLaserClip();
             if (enemyShootClip == null) enemyShootClip = GenerateProceduralEnemyLaserClip();
             if (explosionClip == null) explosionClip = GenerateProceduralExplosionClip();
             if (hitClip == null) hitClip = GenerateProceduralHitClip();
+            if (ufoClip == null) ufoClip = GenerateProceduralUfoClip();
+            if (bonusClip == null) bonusClip = GenerateProceduralBonusClip();
+            if (comboClip == null) comboClip = GenerateProceduralComboClip();
         }
 
         public void PlayShootSound()
@@ -84,9 +93,45 @@ namespace StarInvader
             }
         }
 
-        /// <summary>
-        /// 8비트 아케이드 스타일 플레이어 레이저 신스음 생성 (High to Low Frequency Sweep)
-        /// </summary>
+        public void PlayUfoSound()
+        {
+            if (ufoClip == null) ufoClip = GenerateProceduralUfoClip();
+            if (ufoSource != null && ufoClip != null && !ufoSource.isPlaying)
+            {
+                ufoSource.clip = ufoClip;
+                ufoSource.volume = 0.45f;
+                ufoSource.Play();
+            }
+        }
+
+        public void StopUfoSound()
+        {
+            if (ufoSource != null && ufoSource.isPlaying)
+            {
+                ufoSource.Stop();
+            }
+        }
+
+        public void PlayBonusSound()
+        {
+            if (bonusClip == null) bonusClip = GenerateProceduralBonusClip();
+            if (sfxSource != null && bonusClip != null)
+            {
+                sfxSource.PlayOneShot(bonusClip, 0.95f);
+            }
+        }
+
+        public void PlayComboSound(float pitch = 1.0f)
+        {
+            if (comboClip == null) comboClip = GenerateProceduralComboClip();
+            if (sfxSource != null && comboClip != null)
+            {
+                sfxSource.pitch = Mathf.Clamp(pitch, 0.8f, 2.0f);
+                sfxSource.PlayOneShot(comboClip, 0.7f);
+                sfxSource.pitch = 1.0f;
+            }
+        }
+
         private AudioClip GenerateProceduralPlayerLaserClip()
         {
             int sampleRate = 44100;
@@ -97,10 +142,8 @@ namespace StarInvader
             for (int i = 0; i < totalSamples; i++)
             {
                 float t = (float)i / totalSamples;
-                // 950Hz -> 200Hz 주파수 하강 스윕
                 float freq = Mathf.Lerp(950f, 200f, t * t);
                 float phase = 2f * Mathf.PI * freq * (i / (float)sampleRate);
-                // 사각파(Square) + 톱니파(Sawtooth) 블렌딩으로 레트로 아케이드 질감 연출
                 float wave = Mathf.Sign(Mathf.Sin(phase)) * 0.6f + (Mathf.Sin(phase * 0.5f)) * 0.4f;
                 float envelope = Mathf.Pow(1f - t, 1.5f);
                 samples[i] = wave * envelope * 0.65f;
@@ -111,9 +154,6 @@ namespace StarInvader
             return clip;
         }
 
-        /// <summary>
-        /// 외계인 펄스 레이저 신스음 생성 (Low Pulsing Laser)
-        /// </summary>
         private AudioClip GenerateProceduralEnemyLaserClip()
         {
             int sampleRate = 44100;
@@ -124,7 +164,6 @@ namespace StarInvader
             for (int i = 0; i < totalSamples; i++)
             {
                 float t = (float)i / totalSamples;
-                // 400Hz -> 120Hz 주파수 스윕
                 float freq = Mathf.Lerp(450f, 120f, t);
                 float phase = 2f * Mathf.PI * freq * (i / (float)sampleRate);
                 float wave = Mathf.Sign(Mathf.Sin(phase));
@@ -137,9 +176,6 @@ namespace StarInvader
             return clip;
         }
 
-        /// <summary>
-        /// 레트로 신스 폭발음 생성 (Filtered White Noise Burst)
-        /// </summary>
         private AudioClip GenerateProceduralExplosionClip()
         {
             int sampleRate = 44100;
@@ -160,9 +196,6 @@ namespace StarInvader
             return clip;
         }
 
-        /// <summary>
-        /// 피격 타격음 생성
-        /// </summary>
         private AudioClip GenerateProceduralHitClip()
         {
             int sampleRate = 44100;
@@ -181,6 +214,86 @@ namespace StarInvader
             }
 
             AudioClip clip = AudioClip.Create("SynthHit", totalSamples, 1, sampleRate, false);
+            clip.SetData(samples, 0);
+            return clip;
+        }
+
+        /// <summary>
+        /// 외계인 모함(UFO) 워블 사이렌 루프 사운드
+        /// </summary>
+        private AudioClip GenerateProceduralUfoClip()
+        {
+            int sampleRate = 44100;
+            float duration = 0.4f;
+            int totalSamples = (int)(sampleRate * duration);
+            float[] samples = new float[totalSamples];
+
+            for (int i = 0; i < totalSamples; i++)
+            {
+                float t = (float)i / totalSamples;
+                // 350Hz ~ 550Hz 정현파 진동
+                float freq = 450f + Mathf.Sin(2f * Mathf.PI * 5f * t) * 100f;
+                float phase = 2f * Mathf.PI * freq * (i / (float)sampleRate);
+                float wave = Mathf.Sign(Mathf.Sin(phase)) * 0.4f + Mathf.Sin(phase) * 0.3f;
+                samples[i] = wave * 0.5f;
+            }
+
+            AudioClip clip = AudioClip.Create("SynthUfoSiren", totalSamples, 1, sampleRate, false);
+            clip.SetData(samples, 0);
+            return clip;
+        }
+
+        /// <summary>
+        /// 보너스 UFO 격추 시 아르페지오 팡파레 사운드
+        /// </summary>
+        private AudioClip GenerateProceduralBonusClip()
+        {
+            int sampleRate = 44100;
+            float duration = 0.45f;
+            int totalSamples = (int)(sampleRate * duration);
+            float[] samples = new float[totalSamples];
+
+            // 도(523Hz) - 미(659Hz) - 솔(784Hz) - 도(1046Hz) 아르페지오
+            float[] notes = new float[] { 523.25f, 659.25f, 783.99f, 1046.50f };
+            int noteLength = totalSamples / notes.Length;
+
+            for (int i = 0; i < totalSamples; i++)
+            {
+                int noteIndex = Mathf.Min(i / noteLength, notes.Length - 1);
+                float freq = notes[noteIndex];
+                float tInNote = (float)(i % noteLength) / noteLength;
+                float phase = 2f * Mathf.PI * freq * (i / (float)sampleRate);
+                float wave = Mathf.Sin(phase) + Mathf.Sin(phase * 2f) * 0.3f;
+                float env = Mathf.Pow(1f - tInNote, 1.2f);
+                samples[i] = wave * env * 0.6f;
+            }
+
+            AudioClip clip = AudioClip.Create("SynthBonusFanfare", totalSamples, 1, sampleRate, false);
+            clip.SetData(samples, 0);
+            return clip;
+        }
+
+        /// <summary>
+        /// 콤보 획득 핑 사운드
+        /// </summary>
+        private AudioClip GenerateProceduralComboClip()
+        {
+            int sampleRate = 44100;
+            float duration = 0.15f;
+            int totalSamples = (int)(sampleRate * duration);
+            float[] samples = new float[totalSamples];
+
+            for (int i = 0; i < totalSamples; i++)
+            {
+                float t = (float)i / totalSamples;
+                float freq = Mathf.Lerp(600f, 1200f, t);
+                float phase = 2f * Mathf.PI * freq * (i / (float)sampleRate);
+                float wave = Mathf.Sin(phase);
+                float env = Mathf.Pow(1f - t, 2f);
+                samples[i] = wave * env * 0.7f;
+            }
+
+            AudioClip clip = AudioClip.Create("SynthCombo", totalSamples, 1, sampleRate, false);
             clip.SetData(samples, 0);
             return clip;
         }

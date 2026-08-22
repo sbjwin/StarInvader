@@ -22,11 +22,20 @@ namespace StarInvader
         [SerializeField] private GameObject explosionPrefab;
 
         private int currentHp;
+        private SpriteRenderer spriteRenderer;
+        private Color originalColor;
+        private Coroutine flashCoroutine;
+
         public event Action<Enemy> OnDestroyed;
 
         private void Awake()
         {
             currentHp = maxHp;
+            spriteRenderer = GetComponent<SpriteRenderer>();
+            if (spriteRenderer != null)
+            {
+                originalColor = spriteRenderer.color;
+            }
         }
 
         public void Setup(EnemyType type, int score = GameConstants.SCORE_PER_ENEMY, GameObject explosion = null)
@@ -42,6 +51,21 @@ namespace StarInvader
             if (currentHp <= 0)
             {
                 Die();
+            }
+            else
+            {
+                if (flashCoroutine != null) StopCoroutine(flashCoroutine);
+                flashCoroutine = StartCoroutine(HitFlashRoutine());
+            }
+        }
+
+        private System.Collections.IEnumerator HitFlashRoutine()
+        {
+            if (spriteRenderer != null)
+            {
+                spriteRenderer.color = new Color(1f, 1f, 1f, 1f);
+                yield return new WaitForSeconds(0.06f);
+                spriteRenderer.color = originalColor;
             }
         }
 

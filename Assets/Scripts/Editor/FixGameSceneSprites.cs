@@ -240,6 +240,7 @@ namespace StarInvader.Editor
             UpdatePrefab("Assets/Prefabs/Enemy_Top.prefab", "Assets/GameAssets/images/enemy/enemy_top.png");
             UpdatePrefab("Assets/Prefabs/Enemy_Mid.prefab", "Assets/GameAssets/images/enemy/enemy_mid.png");
             UpdatePrefab("Assets/Prefabs/Enemy_Bottom.prefab", "Assets/GameAssets/images/enemy/enemy_bottom.png");
+            UpdatePrefab("Assets/Prefabs/BonusUfo.prefab", "Assets/GameAssets/images/enemy/enemy_ufo.png");
             UpdatePrefab("Assets/Prefabs/ExplosionEffect.prefab", "Assets/GameAssets/images/effects/explosion.png");
         }
 
@@ -368,7 +369,7 @@ namespace StarInvader.Editor
                 serFleet.ApplyModifiedProperties();
             }
 
-            // 4. InGameController 연결
+            // 4. InGameController & HUD Canvas
             GameObject igcObj = GameObject.Find("InGameController");
             if (igcObj == null)
             {
@@ -376,11 +377,45 @@ namespace StarInvader.Editor
                 igcObj.AddComponent<InGameController>();
             }
             InGameController igc = igcObj.GetComponent<InGameController>();
+
+            // HUD Canvas 및 ComboText
+            GameObject hudCanvas = GameObject.Find("HUDCanvas");
+            Text comboTextComp = null;
+            if (hudCanvas != null)
+            {
+                Transform comboTr = hudCanvas.transform.Find("ComboText");
+                if (comboTr == null)
+                {
+                    GameObject cObj = new GameObject("ComboText");
+                    cObj.transform.SetParent(hudCanvas.transform, false);
+                    RectTransform cRt = cObj.AddComponent<RectTransform>();
+                    cRt.anchorMin = new Vector2(0.5f, 0.5f);
+                    cRt.anchorMax = new Vector2(0.5f, 0.5f);
+                    cRt.pivot = new Vector2(0.5f, 0.5f);
+                    cRt.anchoredPosition = new Vector2(0, 260);
+                    cRt.sizeDelta = new Vector2(400, 50);
+
+                    comboTextComp = cObj.AddComponent<Text>();
+                    comboTextComp.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf") ?? Resources.GetBuiltinResource<Font>("Arial.ttf");
+                    comboTextComp.fontSize = 24;
+                    comboTextComp.fontStyle = FontStyle.Bold;
+                    comboTextComp.alignment = TextAnchor.MiddleCenter;
+                    comboTextComp.color = Color.yellow;
+                    comboTextComp.text = "COMBO x2!";
+                    cObj.SetActive(false);
+                }
+                else
+                {
+                    comboTextComp = comboTr.GetComponent<Text>();
+                }
+            }
+
             if (igc != null)
             {
                 SerializedObject serIgc = new SerializedObject(igc);
                 serIgc.FindProperty("player").objectReferenceValue = playerCtrl;
                 serIgc.FindProperty("enemyFleet").objectReferenceValue = fleet;
+                serIgc.FindProperty("bonusUfoPrefab").objectReferenceValue = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Prefabs/BonusUfo.prefab");
 
                 // UI Text 매핑
                 GameObject scoreObj = GameObject.Find("ScoreText");
@@ -390,6 +425,7 @@ namespace StarInvader.Editor
                 if (scoreObj != null) serIgc.FindProperty("scoreText").objectReferenceValue = scoreObj.GetComponent<Text>();
                 if (hiScoreObj != null) serIgc.FindProperty("highScoreText").objectReferenceValue = hiScoreObj.GetComponent<Text>();
                 if (livesObj != null) serIgc.FindProperty("livesText").objectReferenceValue = livesObj.GetComponent<Text>();
+                if (comboTextComp != null) serIgc.FindProperty("comboText").objectReferenceValue = comboTextComp;
 
                 serIgc.ApplyModifiedProperties();
             }

@@ -82,14 +82,7 @@ namespace StarInvader
             {
                 if (Time.time >= lastShootTime + shootCooldown)
                 {
-                    int activeBulletCount = 0;
-                    Bullet[] existingBullets = FindObjectsByType<Bullet>(FindObjectsSortMode.None);
-                    foreach (var b in existingBullets)
-                    {
-                        if (b != null && !b.IsEnemyBullet) activeBulletCount++;
-                    }
-
-                    if (activeBulletCount < maxConcurrentBullets)
+                    if (Bullet.ActivePlayerBulletCount < maxConcurrentBullets)
                     {
                         Shoot();
                     }
@@ -148,6 +141,7 @@ namespace StarInvader
             isInvincible = true;
             float elapsed = 0f;
             float flashInterval = 0.1f;
+            WaitForSeconds waitInterval = new WaitForSeconds(flashInterval);
 
             while (elapsed < invincibleDuration)
             {
@@ -155,7 +149,7 @@ namespace StarInvader
                 {
                     spriteRenderer.enabled = !spriteRenderer.enabled;
                 }
-                yield return new WaitForSeconds(flashInterval);
+                yield return waitInterval;
                 elapsed += flashInterval;
             }
 
