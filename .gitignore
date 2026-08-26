@@ -112,3 +112,8 @@ walkthrough*
 .agents/
 *.task.log
 
+# Unity Crash/Auto-recovery files
+/[Aa]ssets/_Recovery/
+/[Aa]ssets/_Recovery.meta
+
+
