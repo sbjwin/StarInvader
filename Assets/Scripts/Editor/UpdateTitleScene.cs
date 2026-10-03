@@ -140,6 +140,11 @@ namespace StarInvader.Editor
                     serSm.FindProperty("shootClip").objectReferenceValue = shootClip;
                     serSm.ApplyModifiedProperties();
                 }
+            // 8. Camera AudioListener 보장
+            Camera mainCam = Camera.main;
+            if (mainCam != null && mainCam.GetComponent<AudioListener>() == null)
+            {
+                mainCam.gameObject.AddComponent<AudioListener>();
             }
 
             EditorSceneManager.SaveScene(scene, scenePath);

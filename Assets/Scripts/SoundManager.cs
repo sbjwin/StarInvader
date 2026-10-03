@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
 namespace StarInvader
 {
@@ -27,6 +28,7 @@ namespace StarInvader
             {
                 Instance = this;
                 DontDestroyOnLoad(gameObject);
+                SceneManager.sceneLoaded += OnSceneLoaded;
             }
             else
             {
@@ -37,11 +39,16 @@ namespace StarInvader
             sfxSource = gameObject.GetComponent<AudioSource>();
             if (sfxSource == null) sfxSource = gameObject.AddComponent<AudioSource>();
             sfxSource.playOnAwake = false;
+            sfxSource.spatialBlend = 0f; // 2D 사운드 보장
 
             // UFO 전용 루프 오디오 소스
             ufoSource = gameObject.AddComponent<AudioSource>();
             ufoSource.playOnAwake = false;
             ufoSource.loop = true;
+            ufoSource.spatialBlend = 0f; // 2D 사운드 보장
+
+            // 씬에 AudioListener가 없을 경우 자동 장착
+            EnsureAudioListener();
 
             // 오디오 클립이 없을 경우 절차적 신스 오디오 자동 생성
             if (shootClip == null) shootClip = GenerateProceduralPlayerLaserClip();
@@ -51,6 +58,39 @@ namespace StarInvader
             if (ufoClip == null) ufoClip = GenerateProceduralUfoClip();
             if (bonusClip == null) bonusClip = GenerateProceduralBonusClip();
             if (comboClip == null) comboClip = GenerateProceduralComboClip();
+
+            if (shootClip != null) shootClip.LoadAudioData();
+        }
+
+        private void OnDestroy()
+        {
+            if (Instance == this)
+            {
+                SceneManager.sceneLoaded -= OnSceneLoaded;
+            }
+        }
+
+        private void OnSceneLoaded(Scene scene, LoadSceneMode mode)
+        {
+            EnsureAudioListener();
+        }
+
+        private void EnsureAudioListener()
+        {
+            if (FindObjectOfType<AudioListener>() == null)
+            {
+                Camera cam = Camera.main;
+                if (cam != null)
+                {
+                    cam.gameObject.AddComponent<AudioListener>();
+                    Debug.Log("[SoundManager] Main Camera에 AudioListener가 자동 추가되었습니다.");
+                }
+                else
+                {
+                    gameObject.AddComponent<AudioListener>();
+                    Debug.Log("[SoundManager] SoundManager에 AudioListener가 자동 추가되었습니다.");
+                }
+            }
         }
 
         public void PlayShootSound()

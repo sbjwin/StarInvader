@@ -51,6 +51,7 @@ ExportedObj/
 *.csproj
 *.unityproj
 *.sln
+*.slnx
 *.suo
 *.tmp
 *.user
@@ -115,5 +116,16 @@ walkthrough*
 # Unity Crash/Auto-recovery files
 /[Aa]ssets/_Recovery/
 /[Aa]ssets/_Recovery.meta
+
+# Visual Studio Code & JetBrains Rider
+.vscode/
+.idea/
+
+# OS generated files
+[Tt]humbs.db
+[Dd]esktop.ini
+.DS_Store
+._*
+
 
 

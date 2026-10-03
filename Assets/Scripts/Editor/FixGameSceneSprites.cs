@@ -463,6 +463,10 @@ namespace StarInvader.Editor
                 {
                     mainCam.gameObject.AddComponent<CameraShake>();
                 }
+                if (mainCam.GetComponent<AudioListener>() == null)
+                {
+                    mainCam.gameObject.AddComponent<AudioListener>();
+                }
             }
 
             EditorSceneManager.SaveScene(scene, gameScenePath);

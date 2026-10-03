@@ -109,6 +109,12 @@ namespace StarInvader.Editor
                 SoundManager sm = smObj.AddComponent<SoundManager>();
             }
 
+            Camera mainCam = Camera.main;
+            if (mainCam != null && mainCam.GetComponent<AudioListener>() == null)
+            {
+                mainCam.gameObject.AddComponent<AudioListener>();
+            }
+
             EditorSceneManager.SaveScene(scene, scenePath);
             Debug.Log("<color=cyan>[StarInvader]</color> GameOverScene 그래픽 UI와 GameOverController가 완벽하게 업데이트되었습니다!");
         }
