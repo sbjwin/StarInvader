@@ -94,6 +94,10 @@ namespace StarInvader.Editor
                 mainCam.orthographic = true;
                 mainCam.orthographicSize = 5f;
                 mainCam.backgroundColor = Color.black;
+                if (mainCam.GetComponent<AudioListener>() == null)
+                {
+                    mainCam.gameObject.AddComponent<AudioListener>();
+                }
             }
 
             // 10. Global Managers 보장
@@ -107,12 +111,6 @@ namespace StarInvader.Editor
             {
                 GameObject smObj = new GameObject("SoundManager");
                 SoundManager sm = smObj.AddComponent<SoundManager>();
-            }
-
-            Camera mainCam = Camera.main;
-            if (mainCam != null && mainCam.GetComponent<AudioListener>() == null)
-            {
-                mainCam.gameObject.AddComponent<AudioListener>();
             }
 
             EditorSceneManager.SaveScene(scene, scenePath);
