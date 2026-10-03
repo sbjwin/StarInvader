@@ -19,17 +19,19 @@ namespace StarInvader
         private void Start()
         {
             int finalScore = 0;
+            int finalStage = 1;
             bool isNewRecord = false;
 
             if (GameDataManager.Instance != null)
             {
                 finalScore = GameDataManager.Instance.LastFinalScore;
+                finalStage = GameDataManager.Instance.LastFinalStage;
                 isNewRecord = GameDataManager.Instance.IsNewRecord;
             }
 
             if (finalScoreText != null)
             {
-                finalScoreText.text = $"최종 점수: {finalScore}";
+                finalScoreText.text = $"최종 점수: {finalScore}\n최종 도달: STAGE {finalStage}";
             }
 
             if (newRecordText != null)

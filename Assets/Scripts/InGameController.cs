@@ -231,6 +231,90 @@ namespace StarInvader
             UpdateLivesUI(lives);
         }
 
+        
+        private bool isStageTransitioning = false;
+
+        public void HandleStageClear()
+        {
+            if (isGameOverTriggered || isStageTransitioning) return;
+            StartCoroutine(StageClearRoutine());
+        }
+
+        private IEnumerator StageClearRoutine()
+        {
+            isStageTransitioning = true;
+
+            int clearedStage = (GameDataManager.Instance != null) ? GameDataManager.Instance.CurrentStage : 1;
+            int bonusScore = clearedStage * 1000;
+
+            // 1. 화면 내 모든 적 탄환 즉시 소멸 (안전 이완)
+            Bullet[] bullets = FindObjectsByType<Bullet>(FindObjectsSortMode.None);
+            foreach (var b in bullets)
+            {
+                if (b != null && b.CompareTag("EnemyBullet"))
+                {
+                    Destroy(b.gameObject);
+                }
+            }
+
+            // 2. 승리 팡파레 SFX
+            if (SoundManager.Instance != null)
+            {
+                SoundManager.Instance.PlayBonusSound();
+            }
+
+            // 3. 점수 가산 (클리어 보너스)
+            AddScore(bonusScore);
+
+            // 4. 4스테이지마다 1UP 지급 (관문 돌파 회복 보상)
+            bool is1Up = (clearedStage % 4 == 0);
+            if (is1Up && player != null)
+            {
+                player.AddLive(1);
+            }
+
+            // 5. 화면 중앙 클리어 배너
+            if (comboText != null)
+            {
+                string msg = $"STAGE {clearedStage} CLEAR!\n+{bonusScore} PTS";
+                if (is1Up) msg += "\n❤️ 1UP BONUS!";
+                comboText.text = msg;
+                comboText.color = new Color(0.2f, 1f, 0.7f);
+                comboText.gameObject.SetActive(true);
+            }
+
+            // 1.8초간 클리어 성취감 유지
+            yield return new WaitForSeconds(1.8f);
+
+            // 6. 다음 스테이지 증가
+            if (GameDataManager.Instance != null)
+            {
+                GameDataManager.Instance.CurrentStage++;
+            }
+            int nextStage = (GameDataManager.Instance != null) ? GameDataManager.Instance.CurrentStage : clearedStage + 1;
+
+            if (comboText != null)
+            {
+                comboText.text = $"STAGE {nextStage} - READY!";
+                comboText.color = Color.yellow;
+            }
+
+            yield return new WaitForSeconds(0.7f);
+
+            if (comboText != null)
+            {
+                comboText.gameObject.SetActive(false);
+            }
+
+            UpdateScoreUI();
+            isStageTransitioning = false;
+
+            if (enemyFleet != null)
+            {
+                enemyFleet.SpawnFleet();
+            }
+        }
+
         private void HandlePlayerDied()
         {
             TriggerGameOver();
@@ -262,7 +346,8 @@ namespace StarInvader
 
         private void UpdateScoreUI()
         {
-            if (scoreText != null) scoreText.text = $"SCORE: {currentScore:D5}";
+            int stage = (GameDataManager.Instance != null) ? GameDataManager.Instance.CurrentStage : 1;
+            if (scoreText != null) scoreText.text = $"SCORE: {currentScore:D5} | STAGE {stage:D2}";
             if (highScoreText != null) highScoreText.text = $"HI-SCORE: {highScore:D5}";
         }
 

@@ -11,12 +11,14 @@ namespace StarInvader
     {
         public string name;
         public int score;
+        public int stage = 1;
         public string date;
 
-        public ScoreEntry(string name, int score)
+        public ScoreEntry(string name, int score, int stage = 1)
         {
             this.name = name;
             this.score = score;
+            this.stage = stage;
             this.date = DateTime.Now.ToString("yyyy-MM-dd HH:mm");
         }
     }

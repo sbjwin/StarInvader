@@ -16,6 +16,8 @@ namespace StarInvader
         public int CurrentScore { get; set; } = 0;
         public int LastFinalScore { get; private set; } = 0;
         public bool IsNewRecord { get; private set; } = false;
+        public int CurrentStage { get; set; } = 1;
+        public int LastFinalStage { get; private set; } = 1;
 
         private string saveFilePath;
         private RankingData rankingData = new RankingData();
@@ -38,6 +40,7 @@ namespace StarInvader
         public void ResetGameScore()
         {
             CurrentScore = 0;
+            CurrentStage = 1;
             IsNewRecord = false;
         }
 
@@ -49,12 +52,13 @@ namespace StarInvader
         public void RecordFinalScore()
         {
             LastFinalScore = CurrentScore;
+            LastFinalStage = CurrentStage;
             int previousHighScore = GetHighScore();
             IsNewRecord = LastFinalScore > 0 && LastFinalScore >= previousHighScore;
 
             if (LastFinalScore > 0)
             {
-                SaveScore(LastFinalScore);
+                SaveScore(LastFinalScore, "PLAYER", LastFinalStage);
             }
         }
 
@@ -79,9 +83,9 @@ namespace StarInvader
             }
         }
 
-        public void SaveScore(int score, string playerName = "PLAYER")
+        public void SaveScore(int score, string playerName = "PLAYER", int stage = 1)
         {
-            rankingData.entries.Add(new ScoreEntry(playerName, score));
+            rankingData.entries.Add(new ScoreEntry(playerName, score, stage));
             rankingData.entries = rankingData.entries
                 .OrderByDescending(e => e.score)
                 .Take(GameConstants.MAX_RANKING_ENTRIES)

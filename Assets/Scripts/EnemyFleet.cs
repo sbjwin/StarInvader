@@ -41,11 +41,17 @@ namespace StarInvader
         {
             ClearFleet();
 
+            // 현재 스테이지 기반 난이도 동적 계산
+            int stage = (GameDataManager.Instance != null) ? GameDataManager.Instance.CurrentStage : 1;
+            float dynamicStartY = Mathf.Max(1.9f, GameConstants.ENEMY_START_Y - (stage - 1) * 0.3f);
+            float dynamicBaseSpeed = Mathf.Min(2.4f, baseSpeed + (stage - 1) * 0.12f);
+            shootIntervalMin = Mathf.Max(0.6f, 1.5f - (stage - 1) * 0.12f);
+            shootIntervalMax = Mathf.Max(1.1f, 3.0f - (stage - 1) * 0.2f);
+
             int rows = GameConstants.ENEMY_ROWS;
             int cols = GameConstants.ENEMY_COLS;
             float spacingX = GameConstants.ENEMY_SPACING_X;
             float spacingY = GameConstants.ENEMY_SPACING_Y;
-            float startY = GameConstants.ENEMY_START_Y;
 
             float totalWidth = (cols - 1) * spacingX;
             float startX = -totalWidth / 2f;
@@ -57,7 +63,7 @@ namespace StarInvader
 
                 for (int c = 0; c < cols; c++)
                 {
-                    Vector3 spawnPos = new Vector3(startX + (c * spacingX), startY - (r * spacingY), 0);
+                    Vector3 spawnPos = new Vector3(startX + (c * spacingX), dynamicStartY - (r * spacingY), 0);
                     GameObject enemyObj = null;
 
                     if (prefab != null)
@@ -79,7 +85,7 @@ namespace StarInvader
             }
 
             totalInitialEnemies = activeEnemies.Count;
-            currentSpeed = baseSpeed;
+            currentSpeed = dynamicBaseSpeed;
             moveDirection = 1;
         }
 

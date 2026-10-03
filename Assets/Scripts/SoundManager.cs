@@ -77,7 +77,7 @@ namespace StarInvader
 
         private void EnsureAudioListener()
         {
-            if (FindObjectOfType<AudioListener>() == null)
+            if (FindAnyObjectByType<AudioListener>() == null)
             {
                 Camera cam = Camera.main;
                 if (cam != null)
