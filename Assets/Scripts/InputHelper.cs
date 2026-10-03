@@ -7,6 +7,7 @@ namespace StarInvader
 {
     /// <summary>
     /// Unity Old Input Manager와 New Input System을 모두 완벽 지원하는 크로스 플랫폼 입력 헬퍼
+    /// Active Input Handling이 New Input System 전용이어도 InvalidOperationException이 발생하지 않습니다.
     /// </summary>
     public static class InputHelper
     {
@@ -26,7 +27,8 @@ namespace StarInvader
             catch { }
 #endif
 
-            // Fallback to Legacy Input
+#if ENABLE_LEGACY_INPUT_MANAGER
+            // Fallback to Legacy Input (Only if Legacy Input is enabled in PlayerSettings)
             if (axis == 0f)
             {
                 try
@@ -37,6 +39,7 @@ namespace StarInvader
                 }
                 catch { }
             }
+#endif
 
             return Mathf.Clamp(axis, -1f, 1f);
         }
@@ -58,6 +61,7 @@ namespace StarInvader
             catch { }
 #endif
 
+#if ENABLE_LEGACY_INPUT_MANAGER
             try
             {
                 if (Input.GetKey(KeyCode.Space) || Input.GetKey(KeyCode.Return) || Input.GetButton("Fire1"))
@@ -66,6 +70,7 @@ namespace StarInvader
                 }
             }
             catch { }
+#endif
 
             return false;
         }
@@ -87,6 +92,7 @@ namespace StarInvader
             catch { }
 #endif
 
+#if ENABLE_LEGACY_INPUT_MANAGER
             try
             {
                 if (Input.GetKeyDown(KeyCode.Space) || Input.GetKeyDown(KeyCode.Return) || Input.GetButtonDown("Fire1"))
@@ -95,6 +101,7 @@ namespace StarInvader
                 }
             }
             catch { }
+#endif
 
             return false;
         }
@@ -112,11 +119,13 @@ namespace StarInvader
             catch { }
 #endif
 
+#if ENABLE_LEGACY_INPUT_MANAGER
             try
             {
                 if (Input.GetKeyDown(KeyCode.R)) return true;
             }
             catch { }
+#endif
 
             return false;
         }
@@ -134,11 +143,13 @@ namespace StarInvader
             catch { }
 #endif
 
+#if ENABLE_LEGACY_INPUT_MANAGER
             try
             {
                 if (Input.GetKeyDown(KeyCode.Escape)) return true;
             }
             catch { }
+#endif
 
             return false;
         }
