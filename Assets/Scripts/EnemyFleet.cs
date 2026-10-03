@@ -201,7 +201,14 @@ namespace StarInvader
 
             if (activeEnemies.Count == 0)
             {
-                Invoke(nameof(SpawnFleet), 1.0f);
+                if (InGameController.Instance != null)
+                {
+                    InGameController.Instance.HandleStageClear();
+                }
+                else
+                {
+                    Invoke(nameof(SpawnFleet), 1.0f);
+                }
             }
         }
 

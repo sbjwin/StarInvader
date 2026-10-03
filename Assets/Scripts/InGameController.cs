@@ -61,6 +61,7 @@ namespace StarInvader
                 comboText.gameObject.SetActive(false);
             }
 
+            if (enemyFleet == null) enemyFleet = Object.FindAnyObjectByType<EnemyFleet>();
             UpdateScoreUI();
 
             // 보너스 UFO 스포너 시작
@@ -309,6 +310,7 @@ namespace StarInvader
             UpdateScoreUI();
             isStageTransitioning = false;
 
+            if (enemyFleet == null) enemyFleet = Object.FindAnyObjectByType<EnemyFleet>();
             if (enemyFleet != null)
             {
                 enemyFleet.SpawnFleet();
