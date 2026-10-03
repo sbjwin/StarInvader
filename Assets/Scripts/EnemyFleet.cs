@@ -235,6 +235,50 @@ namespace StarInvader
             activeEnemies.Clear();
         }
 
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+        public void DebugDropToInvasionLimit()
+        {
+            if (activeEnemies.Count == 0) return;
+            float lowestY = float.MaxValue;
+            foreach (var e in activeEnemies)
+            {
+                if (e != null && e.transform.position.y < lowestY) lowestY = e.transform.position.y;
+            }
+
+            float targetLowestY = invasionYLimit + 0.35f;
+            float diff = lowestY - targetLowestY;
+
+            foreach (var e in activeEnemies)
+            {
+                if (e != null)
+                {
+                    Vector3 p = e.transform.position;
+                    p.y -= diff;
+                    e.transform.position = p;
+                }
+            }
+        }
+
+        public void DebugKillAllExcept(int remainingCount = 1)
+        {
+            while (activeEnemies.Count > remainingCount)
+            {
+                var target = activeEnemies[activeEnemies.Count - 1];
+                activeEnemies.RemoveAt(activeEnemies.Count - 1);
+                if (target != null)
+                {
+                    Destroy(target.gameObject);
+                }
+            }
+
+            if (totalInitialEnemies > 0)
+            {
+                float destroyedRatio = 1f - ((float)activeEnemies.Count / totalInitialEnemies);
+                currentSpeed = Mathf.Lerp(baseSpeed, maxSpeed, destroyedRatio);
+            }
+        }
+#endif
+
         private void OnDisable()
         {
             CancelInvoke(nameof(SpawnFleet));

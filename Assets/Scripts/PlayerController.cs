@@ -168,5 +168,19 @@ namespace StarInvader
 
         public int CurrentLives => currentLives;
         public bool IsInvincible => isInvincible;
+
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+        public void SetGodMode(bool enable)
+        {
+            isInvincible = enable;
+        }
+
+        public void AddLive(int count = 1)
+        {
+            currentLives = Mathf.Clamp(currentLives + count, 0, 99);
+            OnLivesChanged?.Invoke(currentLives);
+        }
+#endif
     }
 }
+

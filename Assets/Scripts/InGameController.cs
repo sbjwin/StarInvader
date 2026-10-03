@@ -192,7 +192,7 @@ namespace StarInvader
             }
         }
 
-        private void SpawnBonusUfo()
+        public void SpawnBonusUfo()
         {
             // 이미 씬에 활성화된 UFO가 있으면 스킵
             if (FindAnyObjectByType<BonusUfo>() != null) return;
@@ -211,6 +211,20 @@ namespace StarInvader
                 }
             }
         }
+
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+        public void SetDebugCombo(int comboCount)
+        {
+            currentCombo = comboCount;
+            comboTimer = comboDuration;
+            if (comboText != null)
+            {
+                comboText.text = $"COMBO x{currentCombo}!";
+                comboText.color = Color.yellow;
+                comboText.gameObject.SetActive(true);
+            }
+        }
+#endif
 
         private void HandleLivesChanged(int lives)
         {

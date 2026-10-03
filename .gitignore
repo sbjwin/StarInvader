@@ -112,6 +112,7 @@ implementation*
 walkthrough*
 .agents/
 *.task.log
+HARNESS_PLAN.md
 
 # Unity Crash/Auto-recovery files
 /[Aa]ssets/_Recovery/
@@ -129,3 +130,8 @@ walkthrough*
 
 
 
+ 
+/[Aa]ssets/Scripts/Harness/ 
+/[Aa]ssets/Scripts/Harness.meta
+Assets/Scripts/Harness/
+Assets/Scripts/Harness.meta
