@@ -361,16 +361,19 @@ namespace StarInvader
         public bool HasShield => hasShield;
         public bool IsInvincible => isInvincible;
 
-#if UNITY_EDITOR || DEVELOPMENT_BUILD
-        public void SetGodMode(bool enable)
-        {
-            isInvincible = enable;
-        }
-
+        /// <summary>
+        /// 1UP 보너스 또는 생명 추가 (스코어 마일스톤 및 4스테이지 클리어 보상)
+        /// </summary>
         public void AddLive(int count = 1)
         {
             currentLives = Mathf.Clamp(currentLives + count, 0, 99);
             OnLivesChanged?.Invoke(currentLives);
+        }
+
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+        public void SetGodMode(bool enable)
+        {
+            isInvincible = enable;
         }
 
         public void SetWeaponLevel(int level)
