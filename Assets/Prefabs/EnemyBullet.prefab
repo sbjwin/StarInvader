@@ -182,3 +182,4 @@ MonoBehaviour:
   isEnemyBullet: 1
   speed: 6
   damage: 1
+  isPiercing: 0

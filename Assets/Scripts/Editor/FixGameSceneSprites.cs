@@ -7,17 +7,17 @@ using UnityEngine.UI;
 
 namespace StarInvader.Editor
 {
-    [InitializeOnLoad]
     public class FixGameSceneSprites
     {
-        static FixGameSceneSprites()
-        {
-            EditorApplication.delayCall += ProcessAllSpritesAndFixGameScene;
-        }
-
         [MenuItem("Star Invader/인게임 스프라이트 크기, 탄환 및 사운드 시스템 완벽 보정", false, 2)]
         public static void ProcessAllSpritesAndFixGameScene()
         {
+            if (EditorApplication.isPlaying)
+            {
+                Debug.LogWarning("[StarInvader] 플레이 모드 중에는 스프라이트 보정을 실행할 수 없습니다.");
+                return;
+            }
+
             // 1. 탄환 텍스처 생성 (플레이어 네온 시안 빔, 적 네온 레드 펄스 빔)
             CreateBulletSprites();
 

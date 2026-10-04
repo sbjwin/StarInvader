@@ -7,17 +7,17 @@ using System.IO;
 
 namespace StarInvader.Editor
 {
-    [InitializeOnLoad]
     public class UpdateTitleScene
     {
-        static UpdateTitleScene()
-        {
-            EditorApplication.delayCall += RebuildTitleScene;
-        }
-
         [MenuItem("Star Invader/타이틀 씬 그래픽 UI 완벽 업데이트", false, 1)]
         public static void RebuildTitleScene()
         {
+            if (EditorApplication.isPlaying)
+            {
+                Debug.LogWarning("[StarInvader] 플레이 모드 중에는 씬 리빌드를 실행할 수 없습니다.");
+                return;
+            }
+
             string scenePath = "Assets/Scenes/TitleScene.unity";
             Scene scene = EditorSceneManager.OpenScene(scenePath);
 

@@ -159,6 +159,8 @@ MonoBehaviour:
   invasionYLimit: -3.2
   shootIntervalMin: 0.8
   shootIntervalMax: 2
+  diveIntervalMin: 4
+  diveIntervalMax: 7
 --- !u!4 &14916878
 Transform:
   m_ObjectHideFlags: 0
@@ -293,6 +295,10 @@ MonoBehaviour:
   maxConcurrentBullets: 3
   maxLives: 3
   invincibleDuration: 1.2
+  weaponLevel: 1
+  spGauge: 0
+  maxSpGauge: 100
+  hasShield: 0
 --- !u!61 &106116546
 BoxCollider2D:
   m_ObjectHideFlags: 0
@@ -616,7 +622,7 @@ MonoBehaviour:
     m_VerticalOverflow: 0
     m_LineSpacing: 1
   m_Text: 'SCORE: 00000'
---- !u!1 &481769077
+--- !u!1 &390277826
 GameObject:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -624,89 +630,38 @@ GameObject:
   m_PrefabAsset: {fileID: 0}
   serializedVersion: 6
   m_Component:
-  - component: {fileID: 481769079}
-  - component: {fileID: 481769078}
+  - component: {fileID: 390277827}
+  - component: {fileID: 390277828}
   m_Layer: 0
-  m_Name: SoundManager
+  m_Name: BG_Layer1
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!114 &481769078
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 481769077}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: c3bb5f511edb76a45856468688f68bda, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::StarInvader.SoundManager
-  shootClip: {fileID: 8300000, guid: 5c20472c8d5298e4cbcdd55b1612835a, type: 3}
-  enemyShootClip: {fileID: 0}
-  explosionClip: {fileID: 0}
-  hitClip: {fileID: 0}
-  ufoClip: {fileID: 0}
-  bonusClip: {fileID: 0}
-  comboClip: {fileID: 0}
---- !u!4 &481769079
+--- !u!4 &390277827
 Transform:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 481769077}
+  m_GameObject: {fileID: 390277826}
   serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
-  m_Father: {fileID: 0}
+  m_Father: {fileID: 1043781134}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!1 &766845895
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 766845896}
-  - component: {fileID: 766845897}
-  m_Layer: 0
-  m_Name: BG_Layer2
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!4 &766845896
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 766845895}
-  serializedVersion: 2
-  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 0, y: 10, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 1087318690}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!212 &766845897
+--- !u!212 &390277828
 SpriteRenderer:
   serializedVersion: 2
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 766845895}
+  m_GameObject: {fileID: 390277826}
   m_Enabled: 1
   m_CastShadows: 0
   m_ReceiveShadows: 0
@@ -758,7 +713,7 @@ SpriteRenderer:
   m_SpriteTileMode: 0
   m_WasSpriteAssigned: 1
   m_SpriteSortPoint: 0
---- !u!1 &954210775
+--- !u!1 &481769077
 GameObject:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -766,38 +721,89 @@ GameObject:
   m_PrefabAsset: {fileID: 0}
   serializedVersion: 6
   m_Component:
-  - component: {fileID: 954210776}
-  - component: {fileID: 954210777}
+  - component: {fileID: 481769079}
+  - component: {fileID: 481769078}
   m_Layer: 0
-  m_Name: BG_Layer1
+  m_Name: SoundManager
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!4 &954210776
+--- !u!114 &481769078
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 481769077}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c3bb5f511edb76a45856468688f68bda, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::StarInvader.SoundManager
+  shootClip: {fileID: 8300000, guid: 5c20472c8d5298e4cbcdd55b1612835a, type: 3}
+  enemyShootClip: {fileID: 0}
+  explosionClip: {fileID: 0}
+  hitClip: {fileID: 0}
+  ufoClip: {fileID: 0}
+  bonusClip: {fileID: 0}
+  comboClip: {fileID: 0}
+--- !u!4 &481769079
 Transform:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 954210775}
+  m_GameObject: {fileID: 481769077}
   serializedVersion: 2
-  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
-  m_Father: {fileID: 1087318690}
+  m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!212 &954210777
+--- !u!1 &798501086
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 798501087}
+  - component: {fileID: 798501088}
+  m_Layer: 0
+  m_Name: BG_Layer2
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &798501087
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 798501086}
+  serializedVersion: 2
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalPosition: {x: 0, y: 10, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 1043781134}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!212 &798501088
 SpriteRenderer:
   serializedVersion: 2
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 954210775}
+  m_GameObject: {fileID: 798501086}
   m_Enabled: 1
   m_CastShadows: 0
   m_ReceiveShadows: 0
@@ -928,7 +934,7 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!1 &1087318688
+--- !u!1 &1043781132
 GameObject:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -936,8 +942,8 @@ GameObject:
   m_PrefabAsset: {fileID: 0}
   serializedVersion: 6
   m_Component:
-  - component: {fileID: 1087318690}
-  - component: {fileID: 1087318689}
+  - component: {fileID: 1043781134}
+  - component: {fileID: 1043781133}
   m_Layer: 0
   m_Name: Background
   m_TagString: Untagged
@@ -945,13 +951,13 @@ GameObject:
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!114 &1087318689
+--- !u!114 &1043781133
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1087318688}
+  m_GameObject: {fileID: 1043781132}
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 68670c5e7b233a146a81bb122fa45e31, type: 3}
@@ -959,23 +965,23 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::StarInvader.BackgroundScroller
   scrollSpeed: 1.5
   resetHeight: 10
-  bg1: {fileID: 954210776}
-  bg2: {fileID: 766845896}
---- !u!4 &1087318690
+  bg1: {fileID: 390277827}
+  bg2: {fileID: 798501087}
+--- !u!4 &1043781134
 Transform:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1087318688}
+  m_GameObject: {fileID: 1043781132}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
-  - {fileID: 954210776}
-  - {fileID: 766845896}
+  - {fileID: 390277827}
+  - {fileID: 798501087}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1245161892
@@ -1387,4 +1393,4 @@ SceneRoots:
   - {fileID: 1672086053}
   - {fileID: 481769079}
   - {fileID: 1474448392}
-  - {fileID: 1087318690}
+  - {fileID: 1043781134}

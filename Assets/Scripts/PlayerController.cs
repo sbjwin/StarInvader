@@ -298,13 +298,6 @@ namespace StarInvader
             }
 
             currentLives -= damage;
-            // 피격 시 무기 레벨 1단계 하향 (최소 1)
-            if (weaponLevel > 1)
-            {
-                weaponLevel--;
-                OnWeaponLevelChanged?.Invoke(weaponLevel);
-            }
-
             OnLivesChanged?.Invoke(currentLives);
 
             // 카메라 셰이크 연출

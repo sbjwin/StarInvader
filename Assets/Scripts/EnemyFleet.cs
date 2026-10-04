@@ -79,12 +79,33 @@ namespace StarInvader
             motionTimer = 0f;
 
             float dynamicStartY = Mathf.Max(2.0f, GameConstants.ENEMY_START_Y - (stage - 1) * 0.25f);
-            float dynamicBaseSpeed = Mathf.Min(2.4f, baseSpeed + (stage - 1) * 0.12f);
-            shootIntervalMin = Mathf.Max(0.5f, 1.4f - (stage - 1) * 0.12f);
-            shootIntervalMax = Mathf.Max(1.0f, 2.6f - (stage - 1) * 0.18f);
+            float dynamicBaseSpeed = Mathf.Min(2.4f, baseSpeed + (stage - 1) * 0.10f);
 
-            // 스테이지당 증원 쿼터 설정 (스테이지 1은 4기, 2 이상은 6~8기)
-            remainingReinforcements = Mathf.Min(8, 4 + (stage - 1) * 2);
+            // [밸런스 완화] 사격 주기: Stage 1은 2.2~3.5초로 여유롭게, 고레벨로 갈수록 점진적 단축
+            shootIntervalMin = Mathf.Max(0.8f, 2.2f - (stage - 1) * 0.35f);
+            shootIntervalMax = Mathf.Max(1.4f, 3.5f - (stage - 1) * 0.45f);
+
+            // [밸런스 완화] 상단 증원 쿼터: Stage 1은 0기(증원 없음), Stage 2는 2기, Stage 3+는 4~6기
+            if (stage == 1) remainingReinforcements = 0;
+            else if (stage == 2) remainingReinforcements = 2;
+            else remainingReinforcements = Mathf.Min(6, 4 + (stage - 3) * 2);
+
+            // [밸런스 완화] 급강하 돌진 주기: Stage 1은 완전 금지, Stage 2는 10~15초로 드물게
+            if (stage == 1)
+            {
+                diveIntervalMin = 9999f;
+                diveIntervalMax = 9999f;
+            }
+            else if (stage == 2)
+            {
+                diveIntervalMin = 10.0f;
+                diveIntervalMax = 15.0f;
+            }
+            else
+            {
+                diveIntervalMin = Mathf.Max(4.5f, 6.5f - (stage - 3) * 0.6f);
+                diveIntervalMax = Mathf.Max(7.5f, 10.0f - (stage - 3) * 0.8f);
+            }
 
             fleetAnchorPosition = new Vector3(0, dynamicStartY, 0);
             transform.position = fleetAnchorPosition;
@@ -324,26 +345,48 @@ namespace StarInvader
 
             Vector3 spawnPos = shooter.transform.position + Vector3.down * 0.35f;
 
-            // 기체 종류 및 스테이지에 따른 탄막 분기
-            switch (shooter.Type)
+            // [밸런스 완화] 탄환 속도: Stage 1은 3.8f로 여유롭게, 레벨마다 0.7f씩 상승 (최대 5.8f)
+            float dynamicBulletSpeed = Mathf.Min(5.8f, 3.8f + (currentStage - 1) * 0.7f);
+
+            // [밸런스 완화] 스테이지별 탄막 패턴 단계적 해금
+            if (currentStage == 1)
             {
-                case EnemyType.Bottom:
-                    // [기본] 1발 수직 하향
-                    FireBullet(spawnPos, Vector2.down);
-                    break;
+                // Stage 1: 100% 무조건 느린 수직 1발 단발만 발사 (초보자 안심 적응)
+                FireBullet(spawnPos, Vector2.down, dynamicBulletSpeed);
+            }
+            else if (currentStage == 2)
+            {
+                // Stage 2: 기본 수직 단발 위주 + 가끔(25%) Mid 기체만 2발 팔자탄 발사
+                if (shooter.Type == EnemyType.Mid && Random.value < 0.25f)
+                {
+                    FireBullet(spawnPos + new Vector3(-0.1f, 0, 0), Quaternion.Euler(0, 0, 16f) * Vector2.down, dynamicBulletSpeed);
+                    FireBullet(spawnPos + new Vector3(0.1f, 0, 0), Quaternion.Euler(0, 0, -16f) * Vector2.down, dynamicBulletSpeed);
+                }
+                else
+                {
+                    FireBullet(spawnPos, Vector2.down, dynamicBulletSpeed);
+                }
+            }
+            else
+            {
+                // Stage 3 이상: 본격적인 2발 팔자 및 3발 부채꼴 확산 탄막 전개
+                switch (shooter.Type)
+                {
+                    case EnemyType.Bottom:
+                        FireBullet(spawnPos, Vector2.down, dynamicBulletSpeed);
+                        break;
 
-                case EnemyType.Mid:
-                    // [2발 팔자(V자) 확산 사격] (-18도, +18도)
-                    FireBullet(spawnPos + new Vector3(-0.1f, 0, 0), Quaternion.Euler(0, 0, 18f) * Vector2.down);
-                    FireBullet(spawnPos + new Vector3(0.1f, 0, 0), Quaternion.Euler(0, 0, -18f) * Vector2.down);
-                    break;
+                    case EnemyType.Mid:
+                        FireBullet(spawnPos + new Vector3(-0.1f, 0, 0), Quaternion.Euler(0, 0, 18f) * Vector2.down, dynamicBulletSpeed);
+                        FireBullet(spawnPos + new Vector3(0.1f, 0, 0), Quaternion.Euler(0, 0, -18f) * Vector2.down, dynamicBulletSpeed);
+                        break;
 
-                case EnemyType.Top:
-                    // [3발 부채꼴 확산 사격] (-24도, 0도, +24도)
-                    FireBullet(spawnPos, Vector2.down);
-                    FireBullet(spawnPos, Quaternion.Euler(0, 0, 24f) * Vector2.down);
-                    FireBullet(spawnPos, Quaternion.Euler(0, 0, -24f) * Vector2.down);
-                    break;
+                    case EnemyType.Top:
+                        FireBullet(spawnPos, Vector2.down, dynamicBulletSpeed);
+                        FireBullet(spawnPos, Quaternion.Euler(0, 0, 24f) * Vector2.down, dynamicBulletSpeed);
+                        FireBullet(spawnPos, Quaternion.Euler(0, 0, -24f) * Vector2.down, dynamicBulletSpeed);
+                        break;
+                }
             }
 
             if (SoundManager.Instance != null)
@@ -352,32 +395,34 @@ namespace StarInvader
             }
         }
 
-        private void FireBullet(Vector3 pos, Vector2 direction)
+        private void FireBullet(Vector3 pos, Vector2 direction, float bulletSpeed)
         {
             if (enemyBulletPrefab == null) return;
             GameObject bObj = Instantiate(enemyBulletPrefab, pos, Quaternion.identity);
             Bullet bulletComp = bObj.GetComponent<Bullet>();
             if (bulletComp != null)
             {
-                bulletComp.Initialize(direction, GameConstants.ENEMY_BULLET_SPEED, true);
+                bulletComp.Initialize(direction, bulletSpeed, true);
             }
         }
 
         public void FireAimedBullet(Vector3 fromPos, Vector3 targetPos)
         {
             if (enemyBulletPrefab == null) return;
+            float dynamicBulletSpeed = Mathf.Min(5.8f, 3.8f + (currentStage - 1) * 0.7f) * 1.1f;
             Vector2 aimDir = (targetPos - fromPos).normalized;
             GameObject bObj = Instantiate(enemyBulletPrefab, fromPos, Quaternion.identity);
             Bullet bulletComp = bObj.GetComponent<Bullet>();
             if (bulletComp != null)
             {
-                bulletComp.Initialize(aimDir, GameConstants.ENEMY_BULLET_SPEED * 1.15f, true);
+                bulletComp.Initialize(aimDir, dynamicBulletSpeed, true);
             }
         }
 
         private void TriggerDiveAttack()
         {
-            if (activeEnemies.Count == 0) return;
+            // Stage 1은 급강하 돌진 완전 금지
+            if (currentStage <= 1 || activeEnemies.Count == 0) return;
 
             // 대열 내에 있는 적 중 1기 선정
             List<Enemy> candidates = new List<Enemy>();

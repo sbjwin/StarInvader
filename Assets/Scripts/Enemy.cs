@@ -216,10 +216,10 @@ namespace StarInvader
                 }
             }
 
-            // 아이템 드롭 (돌진 적 격파 시 100% 드롭, 일반 적 15% 드롭)
+            // 아이템 드롭 (돌진 적 격파 시 100% 드롭, 일반 적 25% 드롭)
             if (parentFleet != null)
             {
-                bool shouldDrop = (currentState == EnemyState.Diving) || (UnityEngine.Random.value < 0.15f);
+                bool shouldDrop = (currentState == EnemyState.Diving) || (UnityEngine.Random.value < 0.25f);
                 if (shouldDrop)
                 {
                     parentFleet.SpawnItemDrop(transform.position);
