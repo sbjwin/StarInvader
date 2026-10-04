@@ -11,6 +11,9 @@ namespace StarInvader
         [SerializeField] private bool isEnemyBullet = false;
         [SerializeField] private float speed = GameConstants.PLAYER_BULLET_SPEED;
         [SerializeField] private int damage = 1;
+        [SerializeField] private bool isPiercing = false;
+
+        private Vector2 moveDirection = Vector2.up;
 
         public static int ActivePlayerBulletCount { get; private set; } = 0;
 
@@ -30,15 +33,30 @@ namespace StarInvader
             }
         }
 
+        public void Initialize(Vector2 direction, float bulletSpeed, bool enemy, bool piercing = false, int dmg = 1)
+        {
+            isEnemyBullet = enemy;
+            speed = bulletSpeed;
+            isPiercing = piercing;
+            damage = dmg;
+            moveDirection = direction.normalized;
+
+            // 탄환 이동 방향에 맞춰 회전 정렬
+            float angle = Mathf.Atan2(moveDirection.y, moveDirection.x) * Mathf.Rad2Deg - 90f;
+            transform.rotation = Quaternion.Euler(0, 0, angle);
+        }
+
         private void Update()
         {
-            // 이동 방향 (플레이어: 위쪽 +Y, 적: 아래쪽 -Y)
-            Vector3 direction = isEnemyBullet ? Vector3.down : Vector3.up;
-            transform.position += direction * (speed * Time.deltaTime);
+            // 이동 방향 (지정된 moveDirection 또는 기본 수직 방향)
+            Vector3 dir = (Vector3)moveDirection;
+            transform.position += dir * (speed * Time.deltaTime);
 
-            // 화면 밖으로 나가면 파괴
-            if (transform.position.y > GameConstants.SCREEN_HEIGHT_HALF + 1.0f ||
-                transform.position.y < -GameConstants.SCREEN_HEIGHT_HALF - 1.0f)
+            // 화면 밖으로 나가면 파괴 (X축 및 Y축)
+            if (transform.position.y > GameConstants.SCREEN_HEIGHT_HALF + 1.2f ||
+                transform.position.y < -GameConstants.SCREEN_HEIGHT_HALF - 1.2f ||
+                transform.position.x > GameConstants.SCREEN_WIDTH_HALF + 1.5f ||
+                transform.position.x < -GameConstants.SCREEN_WIDTH_HALF - 1.5f)
             {
                 Destroy(gameObject);
             }
@@ -53,8 +71,11 @@ namespace StarInvader
                 if (enemy != null)
                 {
                     enemy.TakeDamage(damage);
-                    Destroy(gameObject);
-                    return;
+                    if (!isPiercing)
+                    {
+                        Destroy(gameObject);
+                        return;
+                    }
                 }
 
                 // [플레이어 탄환] -> 보너스 UFO 피격
@@ -62,8 +83,21 @@ namespace StarInvader
                 if (ufo != null)
                 {
                     ufo.TakeDamage(damage);
-                    Destroy(gameObject);
-                    return;
+                    if (!isPiercing)
+                    {
+                        Destroy(gameObject);
+                        return;
+                    }
+                }
+
+                // [관통 특수 탄환/빔] -> 적 탄환 소멸
+                if (isPiercing)
+                {
+                    Bullet enemyBullet = other.GetComponent<Bullet>();
+                    if (enemyBullet != null && enemyBullet.IsEnemyBullet)
+                    {
+                        Destroy(enemyBullet.gameObject);
+                    }
                 }
             }
             else
@@ -86,8 +120,17 @@ namespace StarInvader
         public void SetEnemyBullet(bool enemyBullet)
         {
             isEnemyBullet = enemyBullet;
+            moveDirection = enemyBullet ? Vector2.down : Vector2.up;
+        }
+
+        public void SetDirection(Vector2 dir)
+        {
+            moveDirection = dir.normalized;
+            float angle = Mathf.Atan2(moveDirection.y, moveDirection.x) * Mathf.Rad2Deg - 90f;
+            transform.rotation = Quaternion.Euler(0, 0, angle);
         }
 
         public bool IsEnemyBullet => isEnemyBullet;
+        public bool IsPiercing => isPiercing;
     }
 }

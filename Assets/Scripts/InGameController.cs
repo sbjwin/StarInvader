@@ -30,6 +30,12 @@ namespace StarInvader
         private int highScore = 0;
         private bool isGameOverTriggered = false;
 
+        // 플레이어 상태 캐시
+        private int playerWeaponLevel = 1;
+        private float playerSpGauge = 0f;
+        private bool playerHasShield = false;
+        private int nextExtendMilestone = 10000; // 1만점, 3만점, 6만점 등 달성 시 1UP
+
         // 콤보 변수
         private int currentCombo = 0;
         private float comboTimer = 0f;
@@ -49,10 +55,19 @@ namespace StarInvader
                 highScore = GameDataManager.Instance.GetHighScore();
             }
 
+            if (player == null) player = Object.FindAnyObjectByType<PlayerController>();
+
             if (player != null)
             {
                 player.OnLivesChanged += HandleLivesChanged;
                 player.OnPlayerDied += HandlePlayerDied;
+                player.OnWeaponLevelChanged += HandleWeaponLevelChanged;
+                player.OnSpChanged += HandleSpChanged;
+                player.OnShieldChanged += HandleShieldChanged;
+
+                playerWeaponLevel = player.WeaponLevel;
+                playerSpGauge = player.SpGauge;
+                playerHasShield = player.HasShield;
                 UpdateLivesUI(player.CurrentLives);
             }
 
@@ -87,7 +102,28 @@ namespace StarInvader
             {
                 player.OnLivesChanged -= HandleLivesChanged;
                 player.OnPlayerDied -= HandlePlayerDied;
+                player.OnWeaponLevelChanged -= HandleWeaponLevelChanged;
+                player.OnSpChanged -= HandleSpChanged;
+                player.OnShieldChanged -= HandleShieldChanged;
             }
+        }
+
+        private void HandleWeaponLevelChanged(int level)
+        {
+            playerWeaponLevel = level;
+            UpdateLivesUI(player != null ? player.CurrentLives : 3);
+        }
+
+        private void HandleSpChanged(float sp)
+        {
+            playerSpGauge = sp;
+            UpdateScoreUI();
+        }
+
+        private void HandleShieldChanged(bool hasShield)
+        {
+            playerHasShield = hasShield;
+            UpdateLivesUI(player != null ? player.CurrentLives : 3);
         }
 
         public void AddScore(int baseAmount)
@@ -102,6 +138,37 @@ namespace StarInvader
             int finalScore = baseAmount * multiplier;
 
             currentScore += finalScore;
+
+            // 적 격파 시 플레이어 SP 소폭 충전 (기본 4%, 콤보 시 최대 10%)
+            if (player != null)
+            {
+                player.AddSp(3.5f * multiplier);
+            }
+
+            // 스코어 마일스톤 1UP 지급 (1만점, 3만점, 6만점...)
+            if (currentScore >= nextExtendMilestone)
+            {
+                if (player != null)
+                {
+                    player.AddLive(1);
+                }
+                if (SoundManager.Instance != null)
+                {
+                    SoundManager.Instance.PlayBonusSound();
+                }
+
+                if (comboText != null)
+                {
+                    comboText.text = $"{nextExtendMilestone:N0} PTS EXTEND!\n❤️ 1UP BONUS!";
+                    comboText.color = Color.cyan;
+                    comboText.gameObject.SetActive(true);
+                    if (comboFadeCoroutine != null) StopCoroutine(comboFadeCoroutine);
+                    comboFadeCoroutine = StartCoroutine(ComboFadeRoutine());
+                }
+
+                nextExtendMilestone += (nextExtendMilestone < 30000 ? 20000 : 30000);
+            }
+
             if (currentScore > highScore)
             {
                 highScore = currentScore;
@@ -349,7 +416,8 @@ namespace StarInvader
         private void UpdateScoreUI()
         {
             int stage = (GameDataManager.Instance != null) ? GameDataManager.Instance.CurrentStage : 1;
-            if (scoreText != null) scoreText.text = $"SCORE: {currentScore:D5} | STAGE {stage:D2}";
+            string spStatus = (playerSpGauge >= 100f) ? " [SP READY: X!]" : $" [SP {Mathf.FloorToInt(playerSpGauge)}%]";
+            if (scoreText != null) scoreText.text = $"SCORE: {currentScore:D5} | STAGE {stage:D2}{spStatus}";
             if (highScoreText != null) highScoreText.text = $"HI-SCORE: {highScore:D5}";
         }
 
@@ -359,7 +427,9 @@ namespace StarInvader
             {
                 string hearts = "";
                 for (int i = 0; i < lives; i++) hearts += "♥ ";
-                livesText.text = $"LIVES: {hearts.Trim()}";
+                string wpnName = playerWeaponLevel == 1 ? "SINGLE" : (playerWeaponLevel == 2 ? "DUAL" : "SPREAD");
+                string shieldBadge = playerHasShield ? " [SHIELD]" : "";
+                livesText.text = $"LIVES: {hearts.Trim()}  [WPN: {wpnName}]{shieldBadge}";
             }
         }
     }

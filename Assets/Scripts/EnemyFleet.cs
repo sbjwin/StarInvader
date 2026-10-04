@@ -1,10 +1,29 @@
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
 namespace StarInvader
 {
+    public class FormationSlot
+    {
+        public int slotIndex;
+        public Vector3 localOffset;
+        public EnemyType type;
+        public Enemy currentEnemy;
+        public bool isReservedForReinforcement;
+
+        public FormationSlot(int index, Vector3 offset, EnemyType enemyType)
+        {
+            slotIndex = index;
+            localOffset = offset;
+            type = enemyType;
+            currentEnemy = null;
+            isReservedForReinforcement = false;
+        }
+    }
+
     /// <summary>
-    /// 적 편대 이동, 속도 가속, 반격 사격 및 침략 한계선 관리 (enemy.py 대응)
+    /// 적 편대 제어기 (스테이지별 다채로운 포메이션, 팔자/부채꼴 탄막, 급강하 돌진 및 상단 증원 도킹 관리)
     /// </summary>
     public class EnemyFleet : MonoBehaviour
     {
@@ -18,188 +37,480 @@ namespace StarInvader
         [SerializeField] private float baseSpeed = GameConstants.ENEMY_BASE_SPEED_X;
         [SerializeField] private float maxSpeed = 3.6f;
         [SerializeField] private float dropDistance = GameConstants.ENEMY_DROP_DISTANCE;
-        [SerializeField] private float boundaryX = GameConstants.SCREEN_WIDTH_HALF - 0.3f;
+        [SerializeField] private float boundaryX = GameConstants.SCREEN_WIDTH_HALF - 0.35f;
         [SerializeField] private float invasionYLimit = GameConstants.INVASION_Y_LIMIT;
 
         [Header("사격 설정")]
         [SerializeField] private float shootIntervalMin = 0.8f;
         [SerializeField] private float shootIntervalMax = 2.0f;
 
+        [Header("돌진(Dive) 설정")]
+        [SerializeField] private float diveIntervalMin = 4.0f;
+        [SerializeField] private float diveIntervalMax = 7.0f;
+
+        // 슬롯 및 적기 리스트
+        private List<FormationSlot> formationSlots = new List<FormationSlot>();
         private List<Enemy> activeEnemies = new List<Enemy>();
         private int totalInitialEnemies = 0;
-        private int moveDirection = 1; // 1: 우측, -1: 좌측
+        private int remainingReinforcements = 0; // 스테이지당 상단 증원 가능 횟수
+        private int moveDirection = 1;
         private float currentSpeed;
         private float nextShootTime = 0f;
+        private float nextDiveTime = 0f;
+        private Vector3 fleetAnchorPosition;
 
         private void Start()
         {
+            fleetAnchorPosition = transform.position;
             SpawnFleet();
             ScheduleNextShot();
+            ScheduleNextDive();
         }
+
+        private float motionTimer = 0f;
+        private int currentStage = 1;
 
         public void SpawnFleet()
         {
             ClearFleet();
 
-            // 현재 스테이지 기반 난이도 동적 계산
-            int stage = (GameDataManager.Instance != null) ? GameDataManager.Instance.CurrentStage : 1;
-            float dynamicStartY = Mathf.Max(1.9f, GameConstants.ENEMY_START_Y - (stage - 1) * 0.3f);
+            currentStage = (GameDataManager.Instance != null) ? GameDataManager.Instance.CurrentStage : 1;
+            int stage = currentStage;
+            motionTimer = 0f;
+
+            float dynamicStartY = Mathf.Max(2.0f, GameConstants.ENEMY_START_Y - (stage - 1) * 0.25f);
             float dynamicBaseSpeed = Mathf.Min(2.4f, baseSpeed + (stage - 1) * 0.12f);
-            shootIntervalMin = Mathf.Max(0.6f, 1.5f - (stage - 1) * 0.12f);
-            shootIntervalMax = Mathf.Max(1.1f, 3.0f - (stage - 1) * 0.2f);
+            shootIntervalMin = Mathf.Max(0.5f, 1.4f - (stage - 1) * 0.12f);
+            shootIntervalMax = Mathf.Max(1.0f, 2.6f - (stage - 1) * 0.18f);
 
-            int rows = GameConstants.ENEMY_ROWS;
-            int cols = GameConstants.ENEMY_COLS;
-            float spacingX = GameConstants.ENEMY_SPACING_X;
-            float spacingY = GameConstants.ENEMY_SPACING_Y;
+            // 스테이지당 증원 쿼터 설정 (스테이지 1은 4기, 2 이상은 6~8기)
+            remainingReinforcements = Mathf.Min(8, 4 + (stage - 1) * 2);
 
-            float totalWidth = (cols - 1) * spacingX;
-            float startX = -totalWidth / 2f;
+            fleetAnchorPosition = new Vector3(0, dynamicStartY, 0);
+            transform.position = fleetAnchorPosition;
 
-            for (int r = 0; r < rows; r++)
+            // 스테이지별 포메이션 레이아웃 획득
+            string[] layout = GetFormationLayoutForStage(stage);
+            BuildFormationSlotsFromLayout(layout);
+
+            // 각 슬롯에 적기 인스턴스화
+            foreach (var slot in formationSlots)
             {
-                EnemyType rowType = (r == 0) ? EnemyType.Top : (r == 1 ? EnemyType.Mid : EnemyType.Bottom);
-                GameObject prefab = GetPrefabForType(rowType);
-
-                for (int c = 0; c < cols; c++)
-                {
-                    Vector3 spawnPos = new Vector3(startX + (c * spacingX), dynamicStartY - (r * spacingY), 0);
-                    GameObject enemyObj = null;
-
-                    if (prefab != null)
-                    {
-                        enemyObj = Instantiate(prefab, spawnPos, Quaternion.identity, transform);
-                    }
-                    else
-                    {
-                        enemyObj = CreateFallbackEnemy(rowType, spawnPos);
-                    }
-
-                    Enemy enemyComp = enemyObj.GetComponent<Enemy>();
-                    if (enemyComp == null) enemyComp = enemyObj.AddComponent<Enemy>();
-                    enemyComp.Setup(rowType);
-                    enemyComp.OnDestroyed += HandleEnemyDestroyed;
-
-                    activeEnemies.Add(enemyComp);
-                }
+                SpawnEnemyInSlot(slot);
             }
 
-            totalInitialEnemies = activeEnemies.Count;
+            totalInitialEnemies = activeEnemies.Count + remainingReinforcements;
             currentSpeed = dynamicBaseSpeed;
             moveDirection = 1;
         }
 
+        private string[] GetFormationLayoutForStage(int stage)
+        {
+            int patternIndex = (stage - 1) % 4;
+            switch (patternIndex)
+            {
+                case 0: // Stage 1: V자 화살촉 대형 (Arrowhead, 17기)
+                    return new string[]
+                    {
+                        "...T...",
+                        "..M.M..",
+                        ".M.M.M.",
+                        "B.B.B.B",
+                        "B.....B"
+                    };
+
+                case 1: // Stage 2: 다이아몬드 마름모 대형 (Diamond, 20기)
+                    return new string[]
+                    {
+                        "...T...",
+                        "..T.T..",
+                        ".M...M.",
+                        "M.B.B.M",
+                        ".B...B.",
+                        "..B.B.."
+                    };
+
+                case 2: // Stage 3: W자 듀얼 윙 날개 대형 (Dual Wings, 22기)
+                    return new string[]
+                    {
+                        "T.....T",
+                        "M.T.T.M",
+                        "M.M.M.M",
+                        "B.B.B.B",
+                        ".B...B."
+                    };
+
+                case 3: // Stage 4+: 요새 크로스 대형 (Fortress, 26기)
+                default:
+                    return new string[]
+                    {
+                        ".T.T.T.",
+                        "M.T.T.M",
+                        "M.M.M.M",
+                        "B.M.M.B",
+                        "B.B.B.B"
+                    };
+            }
+        }
+
+        private void BuildFormationSlotsFromLayout(string[] layout)
+        {
+            formationSlots.Clear();
+
+            int rows = layout.Length;
+            int cols = layout[0].Length;
+            float spacingX = 0.8f;
+            float spacingY = 0.65f;
+
+            float totalWidth = (cols - 1) * spacingX;
+            float startX = -totalWidth / 2f;
+
+            int slotCounter = 0;
+            for (int r = 0; r < rows; r++)
+            {
+                for (int c = 0; c < cols; c++)
+                {
+                    char ch = layout[r][c];
+                    if (ch == '.') continue;
+
+                    EnemyType type = (ch == 'T') ? EnemyType.Top : ((ch == 'M') ? EnemyType.Mid : EnemyType.Bottom);
+                    Vector3 localPos = new Vector3(startX + (c * spacingX), -(r * spacingY), 0);
+
+                    FormationSlot slot = new FormationSlot(slotCounter++, localPos, type);
+                    formationSlots.Add(slot);
+                }
+            }
+        }
+
+        private void SpawnEnemyInSlot(FormationSlot slot)
+        {
+            GameObject prefab = GetPrefabForType(slot.type);
+            Vector3 worldPos = transform.position + slot.localOffset;
+            GameObject enemyObj = null;
+
+            if (prefab != null)
+            {
+                enemyObj = Instantiate(prefab, worldPos, Quaternion.identity, transform);
+            }
+            else
+            {
+                enemyObj = CreateFallbackEnemy(slot.type, worldPos);
+            }
+
+            Enemy enemyComp = enemyObj.GetComponent<Enemy>();
+            if (enemyComp == null) enemyComp = enemyObj.AddComponent<Enemy>();
+
+            enemyComp.Setup(slot.type);
+            enemyComp.AssignSlot(this, slot.slotIndex, slot.localOffset);
+            enemyComp.OnDestroyed += HandleEnemyDestroyed;
+
+            slot.currentEnemy = enemyComp;
+            slot.isReservedForReinforcement = false;
+            activeEnemies.Add(enemyComp);
+        }
+
+        private void CalculateCurrentMotion(out Vector3 motionOffset, out float pulseScale)
+        {
+            int motionPattern = (currentStage - 1) % 4;
+            float motionOffsetX = 0f;
+            float motionOffsetY = 0f;
+            pulseScale = 1.0f;
+
+            switch (motionPattern)
+            {
+                case 0: // Stage 1: 은은한 호흡 부유 (Gentle Sway)
+                    motionOffsetY = Mathf.Sin(motionTimer * 1.8f) * 0.18f;
+                    break;
+
+                case 1: // Stage 2: 롤러코스터 사인파 웨이브 (Sine Wave Fluctuation)
+                    motionOffsetY = Mathf.Sin(motionTimer * 2.8f) * 0.45f;
+                    break;
+
+                case 2: // Stage 3: 8자(∞) 입체 선회 (Figure-8 Orbit)
+                    motionOffsetX = Mathf.Sin(motionTimer * 1.6f) * 0.55f;
+                    motionOffsetY = Mathf.Sin(motionTimer * 3.2f) * 0.35f;
+                    break;
+
+                case 3: // Stage 4+: 호흡 팽창 & 변칙 기동 (Breathing Pulse)
+                    motionOffsetY = Mathf.Sin(motionTimer * 2.2f) * 0.28f;
+                    pulseScale = 1.0f + Mathf.Sin(motionTimer * 2.6f) * 0.18f;
+                    break;
+            }
+
+            motionOffset = new Vector3(motionOffsetX, motionOffsetY, 0);
+        }
+
         private void Update()
         {
-            if (activeEnemies.Count == 0) return;
+            if (activeEnemies.Count == 0 && remainingReinforcements <= 0) return;
 
-            // 1. 편대 이동
+            motionTimer += Time.deltaTime;
+            CalculateCurrentMotion(out Vector3 motionOffset, out float pulseScale);
+
+            // 1. 편대 앵커 이동
             float deltaX = moveDirection * currentSpeed * Time.deltaTime;
+            fleetAnchorPosition.x += deltaX;
+            transform.position = fleetAnchorPosition + motionOffset;
+
             bool hitBoundary = false;
             bool reachedInvasionLimit = false;
 
-            foreach (var enemy in activeEnemies)
+            // 2. 대열 내 적기 위치 동기화 및 경계 판정
+            foreach (var slot in formationSlots)
             {
-                if (enemy == null) continue;
-                Vector3 pos = enemy.transform.position;
-                pos.x += deltaX;
-                enemy.transform.position = pos;
-
-                // 좌우 경계 도달 확인
-                if (moveDirection > 0 && pos.x >= boundaryX) hitBoundary = true;
-                else if (moveDirection < 0 && pos.x <= -boundaryX) hitBoundary = true;
-
-                // 침략 한계선 도달 확인
-                if (pos.y <= invasionYLimit) reachedInvasionLimit = true;
-            }
-
-            // 2. 방향 반전 및 하강
-            if (hitBoundary)
-            {
-                moveDirection *= -1;
-                foreach (var enemy in activeEnemies)
+                if (slot.currentEnemy != null && slot.currentEnemy.State == EnemyState.InFormation)
                 {
-                    if (enemy == null) continue;
-                    Vector3 pos = enemy.transform.position;
-                    pos.y -= dropDistance;
-                    enemy.transform.position = pos;
+                    Vector3 worldPos = fleetAnchorPosition + (slot.localOffset * pulseScale) + motionOffset;
+                    slot.currentEnemy.transform.position = worldPos;
+
+                    if (moveDirection > 0 && worldPos.x >= boundaryX) hitBoundary = true;
+                    else if (moveDirection < 0 && worldPos.x <= -boundaryX) hitBoundary = true;
+
+                    if (worldPos.y <= invasionYLimit) reachedInvasionLimit = true;
                 }
             }
 
-            // 3. 침략선 돌파 판정
+            // 3. 경계 도달 시 방향 반전 및 하강
+            if (hitBoundary)
+            {
+                moveDirection *= -1;
+                fleetAnchorPosition.y -= dropDistance;
+                transform.position = fleetAnchorPosition + motionOffset;
+            }
+
+            // 4. 침략 한계선 돌파 판정
             if (reachedInvasionLimit)
             {
                 PlayerController player = FindAnyObjectByType<PlayerController>();
                 if (player != null && player.gameObject.activeSelf)
                 {
-                    Debug.LogWarning("[외계인 침략 성공] 적이 방어선을 뚫었습니다!");
-                    player.TakeDamage(999); // 즉시 패배 처리
+                    Debug.LogWarning("[외계인 침략 성공] 적 편대가 방어선을 돌파했습니다!");
+                    player.TakeDamage(999);
                 }
             }
 
-            // 4. 적 반격 사격
+            // 5. 적 탄막 사격
             if (Time.time >= nextShootTime)
             {
-                ShootRandomEnemyBullet();
+                ShootPatternEnemyBullet();
                 ScheduleNextShot();
             }
-        }
 
-        private void ShootRandomEnemyBullet()
-        {
-            List<Enemy> bottomEnemies = GetBottomEnemies();
-            if (bottomEnemies.Count == 0) return;
-
-            Enemy shooter = bottomEnemies[Random.Range(0, bottomEnemies.Count)];
-            if (shooter != null && enemyBulletPrefab != null)
+            // 6. 급강하 돌진(Dive Attack) 트리거
+            if (Time.time >= nextDiveTime)
             {
-                Vector3 spawnPos = shooter.transform.position + Vector3.down * 0.35f;
-                Instantiate(enemyBulletPrefab, spawnPos, Quaternion.identity);
-
-                // 적 탄환 발사음 재생
-                if (SoundManager.Instance != null)
-                {
-                    SoundManager.Instance.PlayEnemyShootSound();
-                }
+                TriggerDiveAttack();
+                ScheduleNextDive();
             }
         }
 
-        private List<Enemy> GetBottomEnemies()
+        private void ShootPatternEnemyBullet()
         {
-            // 각 열에서 가장 아래쪽에 있는 적만 선별 (스페이스 인베이더 규칙)
-            Dictionary<int, Enemy> columnBottomMap = new Dictionary<int, Enemy>();
+            if (activeEnemies.Count == 0 || enemyBulletPrefab == null) return;
 
-            foreach (var enemy in activeEnemies)
+            // 대열 내에 있는 적기 중 무작위 1기 선정
+            List<Enemy> formationEnemies = new List<Enemy>();
+            foreach (var e in activeEnemies)
             {
-                if (enemy == null) continue;
-                // X좌표를 반올림하여 열(Column) 식별
-                int colKey = Mathf.RoundToInt(enemy.transform.position.x * 10f);
-
-                if (!columnBottomMap.ContainsKey(colKey) || enemy.transform.position.y < columnBottomMap[colKey].transform.position.y)
+                if (e != null && e.State == EnemyState.InFormation)
                 {
-                    columnBottomMap[colKey] = enemy;
+                    formationEnemies.Add(e);
                 }
             }
 
-            return new List<Enemy>(columnBottomMap.Values);
+            if (formationEnemies.Count == 0) return;
+            Enemy shooter = formationEnemies[Random.Range(0, formationEnemies.Count)];
+            if (shooter == null) return;
+
+            Vector3 spawnPos = shooter.transform.position + Vector3.down * 0.35f;
+
+            // 기체 종류 및 스테이지에 따른 탄막 분기
+            switch (shooter.Type)
+            {
+                case EnemyType.Bottom:
+                    // [기본] 1발 수직 하향
+                    FireBullet(spawnPos, Vector2.down);
+                    break;
+
+                case EnemyType.Mid:
+                    // [2발 팔자(V자) 확산 사격] (-18도, +18도)
+                    FireBullet(spawnPos + new Vector3(-0.1f, 0, 0), Quaternion.Euler(0, 0, 18f) * Vector2.down);
+                    FireBullet(spawnPos + new Vector3(0.1f, 0, 0), Quaternion.Euler(0, 0, -18f) * Vector2.down);
+                    break;
+
+                case EnemyType.Top:
+                    // [3발 부채꼴 확산 사격] (-24도, 0도, +24도)
+                    FireBullet(spawnPos, Vector2.down);
+                    FireBullet(spawnPos, Quaternion.Euler(0, 0, 24f) * Vector2.down);
+                    FireBullet(spawnPos, Quaternion.Euler(0, 0, -24f) * Vector2.down);
+                    break;
+            }
+
+            if (SoundManager.Instance != null)
+            {
+                SoundManager.Instance.PlayEnemyShootSound();
+            }
         }
 
-        private void ScheduleNextShot()
+        private void FireBullet(Vector3 pos, Vector2 direction)
         {
-            nextShootTime = Time.time + Random.Range(shootIntervalMin, shootIntervalMax);
+            if (enemyBulletPrefab == null) return;
+            GameObject bObj = Instantiate(enemyBulletPrefab, pos, Quaternion.identity);
+            Bullet bulletComp = bObj.GetComponent<Bullet>();
+            if (bulletComp != null)
+            {
+                bulletComp.Initialize(direction, GameConstants.ENEMY_BULLET_SPEED, true);
+            }
         }
 
-        private void HandleEnemyDestroyed(Enemy enemy)
+        public void FireAimedBullet(Vector3 fromPos, Vector3 targetPos)
+        {
+            if (enemyBulletPrefab == null) return;
+            Vector2 aimDir = (targetPos - fromPos).normalized;
+            GameObject bObj = Instantiate(enemyBulletPrefab, fromPos, Quaternion.identity);
+            Bullet bulletComp = bObj.GetComponent<Bullet>();
+            if (bulletComp != null)
+            {
+                bulletComp.Initialize(aimDir, GameConstants.ENEMY_BULLET_SPEED * 1.15f, true);
+            }
+        }
+
+        private void TriggerDiveAttack()
+        {
+            if (activeEnemies.Count == 0) return;
+
+            // 대열 내에 있는 적 중 1기 선정
+            List<Enemy> candidates = new List<Enemy>();
+            foreach (var e in activeEnemies)
+            {
+                if (e != null && e.State == EnemyState.InFormation)
+                {
+                    candidates.Add(e);
+                }
+            }
+
+            if (candidates.Count == 0) return;
+            Enemy diver = candidates[Random.Range(0, candidates.Count)];
+
+            PlayerController player = FindAnyObjectByType<PlayerController>();
+            Vector3 targetPos = (player != null) ? player.transform.position : new Vector3(0, -4.0f, 0);
+
+            diver.StartDive(targetPos);
+        }
+
+        public void NotifyDiverEscaped(Enemy diver, int slotIdx)
+        {
+            activeEnemies.Remove(diver);
+            HandleSlotVacated(slotIdx);
+            CheckStageClear();
+        }
+
+        public void NotifyEnemyKilled(Enemy enemy, int slotIdx)
         {
             activeEnemies.Remove(enemy);
+            HandleSlotVacated(slotIdx);
+            CheckStageClear();
+        }
 
-            if (totalInitialEnemies > 0)
+        private void HandleSlotVacated(int slotIdx)
+        {
+            FormationSlot slot = formationSlots.Find(s => s.slotIndex == slotIdx);
+            if (slot == null) return;
+
+            slot.currentEnemy = null;
+
+            // 스테이지 증원 쿼터가 남아있으면 상단 증원 예약
+            if (remainingReinforcements > 0 && !slot.isReservedForReinforcement)
             {
-                float destroyedRatio = 1f - ((float)activeEnemies.Count / totalInitialEnemies);
-                currentSpeed = Mathf.Lerp(baseSpeed, maxSpeed, destroyedRatio);
+                slot.isReservedForReinforcement = true;
+                remainingReinforcements--;
+                StartCoroutine(ReinforceSlotRoutine(slot));
+            }
+        }
+
+        private IEnumerator ReinforceSlotRoutine(FormationSlot slot)
+        {
+            // 1.8~2.5초 대기 후 화면 상단 밖에서 스폰
+            yield return new WaitForSeconds(Random.Range(1.8f, 2.5f));
+
+            if (this == null || !gameObject.activeInHierarchy) yield break;
+
+            Vector3 targetWorldPos = GetSlotWorldPosition(slot.slotIndex);
+            Vector3 spawnPos = new Vector3(targetWorldPos.x, GameConstants.SCREEN_HEIGHT_HALF + 1.2f, 0);
+
+            GameObject prefab = GetPrefabForType(slot.type);
+            GameObject enemyObj = null;
+
+            if (prefab != null)
+            {
+                enemyObj = Instantiate(prefab, spawnPos, Quaternion.identity, transform);
+            }
+            else
+            {
+                enemyObj = CreateFallbackEnemy(slot.type, spawnPos);
             }
 
-            if (activeEnemies.Count == 0)
+            Enemy newEnemy = enemyObj.GetComponent<Enemy>();
+            if (newEnemy == null) newEnemy = enemyObj.AddComponent<Enemy>();
+
+            newEnemy.Setup(slot.type);
+            newEnemy.AssignSlot(this, slot.slotIndex, slot.localOffset);
+            newEnemy.OnDestroyed += HandleEnemyDestroyed;
+
+            slot.currentEnemy = newEnemy;
+            slot.isReservedForReinforcement = false;
+            activeEnemies.Add(newEnemy);
+
+            // 상단에서 슬롯으로 스무스 도킹 시작
+            newEnemy.StartDocking(spawnPos, 1.4f);
+        }
+
+        public Vector3 GetSlotWorldPosition(int slotIdx)
+        {
+            FormationSlot slot = formationSlots.Find(s => s.slotIndex == slotIdx);
+            if (slot != null)
+            {
+                CalculateCurrentMotion(out Vector3 motionOffset, out float pulseScale);
+                return fleetAnchorPosition + (slot.localOffset * pulseScale) + motionOffset;
+            }
+            return transform.position;
+        }
+
+        public void SpawnItemDrop(Vector3 pos)
+        {
+            // 드롭 아이템 4종 중 가중치 기반 무작위 추첨
+            // P (35%), SP (25%), Shield (15%), Gem (25%)
+            float rand = Random.value;
+            ItemType chosenType = ItemType.Powerup;
+
+            if (rand < 0.35f) chosenType = ItemType.Powerup;
+            else if (rand < 0.60f) chosenType = ItemType.Special;
+            else if (rand < 0.75f) chosenType = ItemType.Shield;
+            else chosenType = ItemType.Gem;
+
+            GameObject itemObj = new GameObject($"Item_{chosenType}");
+            itemObj.transform.position = pos;
+
+            SpriteRenderer sr = itemObj.AddComponent<SpriteRenderer>();
+            // 기본 원형/네모 스프라이트 생성
+            if (bottomEnemyPrefab != null)
+            {
+                SpriteRenderer baseSr = bottomEnemyPrefab.GetComponent<SpriteRenderer>();
+                if (baseSr != null) sr.sprite = baseSr.sprite;
+            }
+            itemObj.transform.localScale = new Vector3(0.7f, 0.7f, 1f);
+
+            CircleCollider2D col = itemObj.AddComponent<CircleCollider2D>();
+            col.isTrigger = true;
+            col.radius = 0.3f;
+
+            PowerupItem pItem = itemObj.AddComponent<PowerupItem>();
+            pItem.Initialize(chosenType);
+        }
+
+        private void CheckStageClear()
+        {
+            if (activeEnemies.Count == 0 && remainingReinforcements <= 0)
             {
                 if (InGameController.Instance != null)
                 {
@@ -209,6 +520,26 @@ namespace StarInvader
                 {
                     Invoke(nameof(SpawnFleet), 1.0f);
                 }
+            }
+        }
+
+        private void ScheduleNextShot()
+        {
+            nextShootTime = Time.time + Random.Range(shootIntervalMin, shootIntervalMax);
+        }
+
+        private void ScheduleNextDive()
+        {
+            nextDiveTime = Time.time + Random.Range(diveIntervalMin, diveIntervalMax);
+        }
+
+        private void HandleEnemyDestroyed(Enemy enemy)
+        {
+            // enemy.Die() 내부에서 NotifyEnemyKilled가 호출되므로 속도 조정만 처리
+            if (totalInitialEnemies > 0)
+            {
+                float destroyedRatio = 1f - ((float)activeEnemies.Count / totalInitialEnemies);
+                currentSpeed = Mathf.Lerp(baseSpeed, maxSpeed, destroyedRatio);
             }
         }
 
@@ -240,40 +571,27 @@ namespace StarInvader
 
         public void ClearFleet()
         {
+            StopAllCoroutines();
             CancelInvoke(nameof(SpawnFleet));
+
             foreach (var enemy in activeEnemies)
             {
                 if (enemy != null) Destroy(enemy.gameObject);
             }
             activeEnemies.Clear();
+            formationSlots.Clear();
         }
 
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
         public void DebugDropToInvasionLimit()
         {
-            if (activeEnemies.Count == 0) return;
-            float lowestY = float.MaxValue;
-            foreach (var e in activeEnemies)
-            {
-                if (e != null && e.transform.position.y < lowestY) lowestY = e.transform.position.y;
-            }
-
-            float targetLowestY = invasionYLimit + 0.35f;
-            float diff = lowestY - targetLowestY;
-
-            foreach (var e in activeEnemies)
-            {
-                if (e != null)
-                {
-                    Vector3 p = e.transform.position;
-                    p.y -= diff;
-                    e.transform.position = p;
-                }
-            }
+            fleetAnchorPosition.y = invasionYLimit + 0.35f;
+            transform.position = fleetAnchorPosition;
         }
 
         public void DebugKillAllExcept(int remainingCount = 1)
         {
+            remainingReinforcements = 0;
             while (activeEnemies.Count > remainingCount)
             {
                 var target = activeEnemies[activeEnemies.Count - 1];
@@ -283,18 +601,17 @@ namespace StarInvader
                     Destroy(target.gameObject);
                 }
             }
+        }
 
-            if (totalInitialEnemies > 0)
-            {
-                float destroyedRatio = 1f - ((float)activeEnemies.Count / totalInitialEnemies);
-                currentSpeed = Mathf.Lerp(baseSpeed, maxSpeed, destroyedRatio);
-            }
+        public void TriggerDebugDive()
+        {
+            TriggerDiveAttack();
         }
 #endif
 
         private void OnDisable()
         {
-            CancelInvoke(nameof(SpawnFleet));
+            ClearFleet();
         }
     }
 }

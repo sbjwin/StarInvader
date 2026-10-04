@@ -106,6 +106,37 @@ namespace StarInvader
             return false;
         }
 
+        public static bool IsSpecialWeaponPressed()
+        {
+#if ENABLE_INPUT_SYSTEM
+            try
+            {
+                if (Keyboard.current != null && (Keyboard.current.xKey.wasPressedThisFrame || Keyboard.current.cKey.wasPressedThisFrame || Keyboard.current.leftCtrlKey.wasPressedThisFrame))
+                {
+                    return true;
+                }
+                if (Mouse.current != null && Mouse.current.rightButton.wasPressedThisFrame)
+                {
+                    return true;
+                }
+            }
+            catch { }
+#endif
+
+#if ENABLE_LEGACY_INPUT_MANAGER
+            try
+            {
+                if (Input.GetKeyDown(KeyCode.X) || Input.GetKeyDown(KeyCode.C) || Input.GetKeyDown(KeyCode.LeftControl) || Input.GetButtonDown("Fire2"))
+                {
+                    return true;
+                }
+            }
+            catch { }
+#endif
+
+            return false;
+        }
+
         public static bool IsRankingPressed()
         {
 #if ENABLE_INPUT_SYSTEM
