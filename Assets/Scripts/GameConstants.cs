@@ -7,8 +7,8 @@ namespace StarInvader
     /// </summary>
     public static class GameConstants
     {
-        // 화면 경계 (16:9 PC Widescreen, 카메라 Orthographic Size 5.0 기준 가로 반경 약 8.5f)
-        public const float SCREEN_WIDTH_HALF = 8.5f;
+        // 중앙 전투 전장 경계 (16:9 PC 창 내 중앙 50% 3:4 전장, 가로 반경 4.3f / 전체 폭 8.6f)
+        public const float SCREEN_WIDTH_HALF = 4.3f;
         public const float SCREEN_HEIGHT_HALF = 5.0f;
 
         // 플레이어 설정

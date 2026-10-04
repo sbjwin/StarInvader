@@ -9,6 +9,21 @@ namespace StarInvader.Editor
 {
     public class FixGameSceneSprites
     {
+        [MenuItem("Star Invader/★ 16:9 PC 아케이드 3분할 윙 화면 및 HUD 자동 구축 ★", false, 1)]
+        public static void BuildArcadeWingLayoutOnly()
+        {
+            if (EditorApplication.isPlaying)
+            {
+                Debug.LogWarning("[StarInvader] 플레이 모드 중에는 실행할 수 없습니다.");
+                return;
+            }
+
+            UpdateGameScene();
+            AssetDatabase.SaveAssets();
+            AssetDatabase.Refresh();
+            Debug.Log("<color=cyan>[StarInvader]</color> 16:9 PC 아케이드 3분할 윙(중앙 3:4 전장 + 좌우 정보 패널) 화면이 완벽하게 구축되었습니다!");
+        }
+
         [MenuItem("Star Invader/인게임 스프라이트 크기, 탄환 및 사운드 시스템 완벽 보정", false, 2)]
         public static void ProcessAllSpritesAndFixGameScene()
         {
@@ -273,7 +288,7 @@ namespace StarInvader.Editor
             string gameScenePath = "Assets/Scenes/GameScene.unity";
             Scene scene = EditorSceneManager.OpenScene(gameScenePath, OpenSceneMode.Single);
 
-            // 1. Background (우주 은하수 배경 + 스크롤러)
+            // 1. Background (중앙 3:4 전장에 맞춘 1:1 픽셀 무손실 우주 은하수 배경)
             GameObject oldBg = GameObject.Find("Background");
             if (oldBg != null) Object.DestroyImmediate(oldBg);
 
@@ -284,15 +299,15 @@ namespace StarInvader.Editor
             GameObject b1 = new GameObject("BG_Layer1");
             b1.transform.SetParent(bgParent.transform);
             b1.transform.position = Vector3.zero;
-            b1.transform.localScale = new Vector3(2.3f, 1f, 1f);
+            b1.transform.localScale = Vector3.one;
             SpriteRenderer sr1 = b1.AddComponent<SpriteRenderer>();
             sr1.sprite = bgSprite;
             sr1.sortingOrder = -10;
 
             GameObject b2 = new GameObject("BG_Layer2");
             b2.transform.SetParent(bgParent.transform);
-            b2.transform.position = new Vector3(0, 10f, 0);
-            b2.transform.localScale = new Vector3(2.3f, 1f, 1f);
+            b2.transform.position = new Vector3(0, 12f, 0);
+            b2.transform.localScale = Vector3.one;
             SpriteRenderer sr2 = b2.AddComponent<SpriteRenderer>();
             sr2.sprite = bgSprite;
             sr2.sortingOrder = -10;
@@ -302,7 +317,7 @@ namespace StarInvader.Editor
             serializedBg.FindProperty("bg1").objectReferenceValue = b1.transform;
             serializedBg.FindProperty("bg2").objectReferenceValue = b2.transform;
             serializedBg.FindProperty("scrollSpeed").floatValue = 1.5f;
-            serializedBg.FindProperty("resetHeight").floatValue = 10f;
+            serializedBg.FindProperty("resetHeight").floatValue = 12f;
             serializedBg.ApplyModifiedProperties();
 
             // 2. Player 설정 및 PlayerBullet 프리팹 연결
@@ -372,7 +387,7 @@ namespace StarInvader.Editor
                 serFleet.ApplyModifiedProperties();
             }
 
-            // 4. InGameController & HUD Canvas
+            // 4. InGameController & 3분할 아케이드 윙 Canvas 구축
             GameObject igcObj = GameObject.Find("InGameController");
             if (igcObj == null)
             {
@@ -381,105 +396,136 @@ namespace StarInvader.Editor
             }
             InGameController igc = igcObj.GetComponent<InGameController>();
 
-            // HUD Canvas 및 16:9 PC 와이드 최적화
             GameObject hudCanvas = GameObject.Find("HUDCanvas");
-            Text comboTextComp = null;
-            if (hudCanvas != null)
-            {
-                CanvasScaler scaler = hudCanvas.GetComponent<CanvasScaler>();
-                if (scaler != null)
-                {
-                    scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
-                    scaler.referenceResolution = new Vector2(1920, 1080);
-                    scaler.matchWidthOrHeight = 0.5f;
-                }
+            if (hudCanvas != null) Object.DestroyImmediate(hudCanvas);
 
-                // ScoreText 16:9 상단 좌측
-                GameObject scoreObj = GameObject.Find("ScoreText");
-                if (scoreObj != null)
-                {
-                    RectTransform sRt = scoreObj.GetComponent<RectTransform>();
-                    sRt.anchorMin = new Vector2(0, 1);
-                    sRt.anchorMax = new Vector2(0, 1);
-                    sRt.pivot = new Vector2(0, 1);
-                    sRt.anchoredPosition = new Vector2(40, -30);
-                    sRt.sizeDelta = new Vector2(650, 50);
-                    Text sText = scoreObj.GetComponent<Text>();
-                    if (sText != null) { sText.fontSize = 30; sText.fontStyle = FontStyle.Bold; }
-                }
+            hudCanvas = new GameObject("HUDCanvas");
+            Canvas canvas = hudCanvas.AddComponent<Canvas>();
+            canvas.renderMode = RenderMode.ScreenSpaceOverlay;
+            hudCanvas.AddComponent<GraphicRaycaster>();
+            CanvasScaler scaler = hudCanvas.AddComponent<CanvasScaler>();
+            scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
+            scaler.referenceResolution = new Vector2(1920, 1080);
+            scaler.matchWidthOrHeight = 0.5f;
 
-                // HighScoreText 16:9 상단 우측
-                GameObject hiScoreObj = GameObject.Find("HighScoreText");
-                if (hiScoreObj != null)
-                {
-                    RectTransform hRt = hiScoreObj.GetComponent<RectTransform>();
-                    hRt.anchorMin = new Vector2(1, 1);
-                    hRt.anchorMax = new Vector2(1, 1);
-                    hRt.pivot = new Vector2(1, 1);
-                    hRt.anchoredPosition = new Vector2(-40, -30);
-                    hRt.sizeDelta = new Vector2(450, 50);
-                    Text hText = hiScoreObj.GetComponent<Text>();
-                    if (hText != null) { hText.fontSize = 30; hText.fontStyle = FontStyle.Bold; hText.alignment = TextAnchor.MiddleRight; }
-                }
+            Font defaultFont = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf") ?? Resources.GetBuiltinResource<Font>("Arial.ttf");
 
-                // LivesText 16:9 하단 전폭
-                GameObject livesObj = GameObject.Find("LivesText");
-                if (livesObj != null)
-                {
-                    RectTransform lRt = livesObj.GetComponent<RectTransform>();
-                    lRt.anchorMin = new Vector2(0, 0);
-                    lRt.anchorMax = new Vector2(1, 0);
-                    lRt.pivot = new Vector2(0, 0);
-                    lRt.anchoredPosition = new Vector2(40, 30);
-                    lRt.sizeDelta = new Vector2(-80, 50);
-                    Text lText = livesObj.GetComponent<Text>();
-                    if (lText != null) { lText.fontSize = 28; lText.fontStyle = FontStyle.Bold; }
-                }
+            // --- A. LeftWingPanel (좌측 460px 조작/무기 패널) ---
+            GameObject leftPanelObj = new GameObject("LeftWingPanel");
+            leftPanelObj.transform.SetParent(hudCanvas.transform, false);
+            RectTransform lpRt = leftPanelObj.AddComponent<RectTransform>();
+            lpRt.anchorMin = new Vector2(0, 0);
+            lpRt.anchorMax = new Vector2(0, 1);
+            lpRt.pivot = new Vector2(0, 0.5f);
+            lpRt.anchoredPosition = Vector2.zero;
+            lpRt.sizeDelta = new Vector2(460, 0);
 
-                Transform comboTr = hudCanvas.transform.Find("ComboText");
-                if (comboTr == null)
-                {
-                    GameObject cObj = new GameObject("ComboText");
-                    cObj.transform.SetParent(hudCanvas.transform, false);
-                    RectTransform cRt = cObj.AddComponent<RectTransform>();
-                    cRt.anchorMin = new Vector2(0.5f, 0.5f);
-                    cRt.anchorMax = new Vector2(0.5f, 0.5f);
-                    cRt.pivot = new Vector2(0.5f, 0.5f);
-                    cRt.anchoredPosition = new Vector2(0, 180);
-                    cRt.sizeDelta = new Vector2(800, 120);
+            Image lpBg = leftPanelObj.AddComponent<Image>();
+            lpBg.color = new Color(0.02f, 0.03f, 0.07f, 0.95f);
 
-                    comboTextComp = cObj.AddComponent<Text>();
-                    comboTextComp.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf") ?? Resources.GetBuiltinResource<Font>("Arial.ttf");
-                    comboTextComp.fontSize = 36;
-                    comboTextComp.fontStyle = FontStyle.Bold;
-                    comboTextComp.alignment = TextAnchor.MiddleCenter;
-                    comboTextComp.color = Color.yellow;
-                    comboTextComp.text = "COMBO x2!";
-                    cObj.SetActive(false);
-                }
-                else
-                {
-                    comboTextComp = comboTr.GetComponent<Text>();
-                }
-            }
+            // 좌측 패널 우측 네온 테두리선
+            GameObject lBorder = new GameObject("RightBorderLine");
+            lBorder.transform.SetParent(leftPanelObj.transform, false);
+            RectTransform lbRt = lBorder.AddComponent<RectTransform>();
+            lbRt.anchorMin = new Vector2(1, 0);
+            lbRt.anchorMax = new Vector2(1, 1);
+            lbRt.pivot = new Vector2(1, 0.5f);
+            lbRt.anchoredPosition = Vector2.zero;
+            lbRt.sizeDelta = new Vector2(3, 0);
+            Image lbImg = lBorder.AddComponent<Image>();
+            lbImg.color = new Color(0.0f, 0.8f, 1.0f, 0.8f);
 
+            // 좌측 로고
+            CreateUIText(leftPanelObj.transform, "LogoText", "★ STAR INVADER ★", new Vector2(230, -50), new Vector2(420, 45), defaultFont, 26, FontStyle.Bold, Color.cyan, TextAnchor.MiddleCenter);
+            CreateUIText(leftPanelObj.transform, "SubLogoText", "- RETRO SPACE DEFENDER -", new Vector2(230, -85), new Vector2(420, 30), defaultFont, 16, FontStyle.Normal, new Color(0.7f, 0.8f, 1f, 0.8f), TextAnchor.MiddleCenter);
+
+            // 좌측 조작 가이드 헤더
+            CreateUIText(leftPanelObj.transform, "CtrlHeader", "[ 조 작 가 이 드 ]", new Vector2(230, -160), new Vector2(400, 35), defaultFont, 22, FontStyle.Bold, Color.yellow, TextAnchor.MiddleCenter);
+            string ctrlHelp = "이동 :  ← →  또는  A / D\n사격 :  SPACE  또는  Z\n필살기 :  X  또는  우클릭";
+            CreateUIText(leftPanelObj.transform, "CtrlDesc", ctrlHelp, new Vector2(230, -240), new Vector2(400, 100), defaultFont, 20, FontStyle.Normal, Color.white, TextAnchor.MiddleCenter);
+
+            // 좌측 기체 시스템 헤더
+            CreateUIText(leftPanelObj.transform, "SysHeader", "[ 기 체 시 스 템 ]", new Vector2(230, -350), new Vector2(400, 35), defaultFont, 22, FontStyle.Bold, new Color(1f, 0.4f, 0.8f), TextAnchor.MiddleCenter);
+            Text weaponStatusText = CreateUIText(leftPanelObj.transform, "WeaponStatusText", "무기: 기본 레이저\n보호막: 비활성\n필살기: 0%", new Vector2(230, -440), new Vector2(400, 120), defaultFont, 20, FontStyle.Normal, Color.white, TextAnchor.MiddleCenter);
+
+            // 좌측 하단 개발자 크레딧
+            CreateUIText(leftPanelObj.transform, "CreditText", "Dev: Sung Baekjin\nVer 1.0 PC Arcade Edition", new Vector2(230, 40), new Vector2(400, 50), defaultFont, 14, FontStyle.Normal, new Color(0.5f, 0.6f, 0.7f), TextAnchor.MiddleCenter, new Vector2(0.5f, 0f), new Vector2(0, 0), new Vector2(1, 0));
+
+            // --- B. RightWingPanel (우측 460px 점수/생명력 패널) ---
+            GameObject rightPanelObj = new GameObject("RightWingPanel");
+            rightPanelObj.transform.SetParent(hudCanvas.transform, false);
+            RectTransform rpRt = rightPanelObj.AddComponent<RectTransform>();
+            rpRt.anchorMin = new Vector2(1, 0);
+            rpRt.anchorMax = new Vector2(1, 1);
+            rpRt.pivot = new Vector2(1, 0.5f);
+            rpRt.anchoredPosition = Vector2.zero;
+            rpRt.sizeDelta = new Vector2(460, 0);
+
+            Image rpBg = rightPanelObj.AddComponent<Image>();
+            rpBg.color = new Color(0.02f, 0.03f, 0.07f, 0.95f);
+
+            // 우측 패널 좌측 네온 테두리선
+            GameObject rBorder = new GameObject("LeftBorderLine");
+            rBorder.transform.SetParent(rightPanelObj.transform, false);
+            RectTransform rbRt = rBorder.AddComponent<RectTransform>();
+            rbRt.anchorMin = new Vector2(0, 0);
+            rbRt.anchorMax = new Vector2(0, 1);
+            rbRt.pivot = new Vector2(0, 0.5f);
+            rbRt.anchoredPosition = Vector2.zero;
+            rbRt.sizeDelta = new Vector2(3, 0);
+            Image rbImg = rBorder.AddComponent<Image>();
+            rbImg.color = new Color(0.0f, 0.8f, 1.0f, 0.8f);
+
+            // 스테이지 표시
+            Text stageText = CreateUIText(rightPanelObj.transform, "StageText", "STAGE 01", new Vector2(230, -50), new Vector2(400, 45), defaultFont, 32, FontStyle.Bold, new Color(1f, 0.85f, 0.2f), TextAnchor.MiddleCenter);
+
+            // 점수 섹션
+            CreateUIText(rightPanelObj.transform, "ScoreLabel", "[ 점  수 ]", new Vector2(230, -130), new Vector2(400, 30), defaultFont, 20, FontStyle.Bold, new Color(0.7f, 0.9f, 1f), TextAnchor.MiddleCenter);
+            Text scoreText = CreateUIText(rightPanelObj.transform, "ScoreText", "0", new Vector2(230, -180), new Vector2(400, 55), defaultFont, 44, FontStyle.Bold, Color.cyan, TextAnchor.MiddleCenter);
+
+            // 최고점수 섹션
+            CreateUIText(rightPanelObj.transform, "HighScoreLabel", "[ 최 고 점 수 ]", new Vector2(230, -260), new Vector2(400, 30), defaultFont, 20, FontStyle.Bold, new Color(1f, 0.8f, 0.5f), TextAnchor.MiddleCenter);
+            Text highScoreText = CreateUIText(rightPanelObj.transform, "HighScoreText", "0", new Vector2(230, -305), new Vector2(400, 45), defaultFont, 32, FontStyle.Bold, Color.yellow, TextAnchor.MiddleCenter);
+
+            // 생명력 섹션
+            CreateUIText(rightPanelObj.transform, "LivesLabel", "[ 파 일 럿 잔 기 ]", new Vector2(230, -385), new Vector2(400, 30), defaultFont, 20, FontStyle.Bold, new Color(0.6f, 1f, 0.7f), TextAnchor.MiddleCenter);
+            Text livesText = CreateUIText(rightPanelObj.transform, "LivesText", "♥ ♥ ♥", new Vector2(230, -435), new Vector2(400, 55), defaultFont, 38, FontStyle.Bold, new Color(0.2f, 1f, 0.4f), TextAnchor.MiddleCenter);
+
+            // 1UP 보너스 안내
+            CreateUIText(rightPanelObj.transform, "1UpInfo", "★ 10,000점 마다 잔기 1UP 지급 ★", new Vector2(230, 40), new Vector2(400, 40), defaultFont, 16, FontStyle.Normal, new Color(0.4f, 1f, 0.8f, 0.85f), TextAnchor.MiddleCenter, new Vector2(0.5f, 0f), new Vector2(0, 0), new Vector2(1, 0));
+
+            // --- C. Center ComboText (중앙 1000px 전장 상단 팝업 배너) ---
+            GameObject cObj = new GameObject("ComboText");
+            cObj.transform.SetParent(hudCanvas.transform, false);
+            RectTransform cRt = cObj.AddComponent<RectTransform>();
+            cRt.anchorMin = new Vector2(0.5f, 0.5f);
+            cRt.anchorMax = new Vector2(0.5f, 0.5f);
+            cRt.pivot = new Vector2(0.5f, 0.5f);
+            cRt.anchoredPosition = new Vector2(0, 200);
+            cRt.sizeDelta = new Vector2(800, 120);
+
+            Text comboTextComp = cObj.AddComponent<Text>();
+            comboTextComp.font = defaultFont;
+            comboTextComp.fontSize = 36;
+            comboTextComp.fontStyle = FontStyle.Bold;
+            comboTextComp.alignment = TextAnchor.MiddleCenter;
+            comboTextComp.color = Color.yellow;
+            comboTextComp.text = "COMBO x2!";
+            cObj.SetActive(false);
+
+            // InGameController 바인딩
             if (igc != null)
             {
                 SerializedObject serIgc = new SerializedObject(igc);
                 serIgc.FindProperty("player").objectReferenceValue = playerCtrl;
                 serIgc.FindProperty("enemyFleet").objectReferenceValue = fleet;
                 serIgc.FindProperty("bonusUfoPrefab").objectReferenceValue = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Prefabs/BonusUfo.prefab");
-
-                // UI Text 매핑
-                GameObject scoreObj = GameObject.Find("ScoreText");
-                GameObject hiScoreObj = GameObject.Find("HighScoreText");
-                GameObject livesObj = GameObject.Find("LivesText");
-
-                if (scoreObj != null) serIgc.FindProperty("scoreText").objectReferenceValue = scoreObj.GetComponent<Text>();
-                if (hiScoreObj != null) serIgc.FindProperty("highScoreText").objectReferenceValue = hiScoreObj.GetComponent<Text>();
-                if (livesObj != null) serIgc.FindProperty("livesText").objectReferenceValue = livesObj.GetComponent<Text>();
-                if (comboTextComp != null) serIgc.FindProperty("comboText").objectReferenceValue = comboTextComp;
-
+                serIgc.FindProperty("scoreText").objectReferenceValue = scoreText;
+                serIgc.FindProperty("highScoreText").objectReferenceValue = highScoreText;
+                serIgc.FindProperty("livesText").objectReferenceValue = livesText;
+                serIgc.FindProperty("comboText").objectReferenceValue = comboTextComp;
+                serIgc.FindProperty("stageText").objectReferenceValue = stageText;
+                serIgc.FindProperty("weaponStatusText").objectReferenceValue = weaponStatusText;
                 serIgc.ApplyModifiedProperties();
             }
 
@@ -522,6 +568,38 @@ namespace StarInvader.Editor
             }
 
             EditorSceneManager.SaveScene(scene, gameScenePath);
+        }
+
+        private static Text CreateUIText(Transform parent, string name, string text, Vector2 pos, Vector2 size, Font font, int fontSize, FontStyle fontStyle, Color color, TextAnchor alignment, Vector2? anchor = null, Vector2? anchorMin = null, Vector2? anchorMax = null)
+        {
+            GameObject obj = new GameObject(name);
+            obj.transform.SetParent(parent, false);
+            RectTransform rt = obj.AddComponent<RectTransform>();
+
+            if (anchorMin.HasValue && anchorMax.HasValue)
+            {
+                rt.anchorMin = anchorMin.Value;
+                rt.anchorMax = anchorMax.Value;
+            }
+            else
+            {
+                Vector2 a = anchor ?? new Vector2(0.5f, 1f);
+                rt.anchorMin = a;
+                rt.anchorMax = a;
+            }
+
+            rt.pivot = anchor ?? new Vector2(0.5f, 1f);
+            rt.anchoredPosition = pos;
+            rt.sizeDelta = size;
+
+            Text txt = obj.AddComponent<Text>();
+            txt.font = font;
+            txt.fontSize = fontSize;
+            txt.fontStyle = fontStyle;
+            txt.color = color;
+            txt.alignment = alignment;
+            txt.text = text;
+            return txt;
         }
     }
 }

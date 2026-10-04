@@ -22,6 +22,8 @@ namespace StarInvader
         [SerializeField] private Text highScoreText;
         [SerializeField] private Text livesText;
         [SerializeField] private Text comboText;
+        [SerializeField] private Text stageText;
+        [SerializeField] private Text weaponStatusText;
 
         [Header("콤보 설정")]
         [SerializeField] private float comboDuration = 2.0f;
@@ -416,21 +418,29 @@ namespace StarInvader
         private void UpdateScoreUI()
         {
             int stage = (GameDataManager.Instance != null) ? GameDataManager.Instance.CurrentStage : 1;
-            if (scoreText != null) scoreText.text = $"SCORE: {currentScore:D5} | STAGE {stage:D2}";
-            if (highScoreText != null) highScoreText.text = $"HI-SCORE: {highScore:D5}";
+            if (stageText != null) stageText.text = $"STAGE {stage:D2}";
+            if (scoreText != null) scoreText.text = $"점수: {currentScore:N0}";
+            if (highScoreText != null) highScoreText.text = $"최고점수: {highScore:N0}";
             UpdateLivesUI(player != null ? player.CurrentLives : 3);
         }
 
         private void UpdateLivesUI(int lives)
         {
+            string hearts = "";
+            for (int i = 0; i < lives; i++) hearts += "♥ ";
+            if (string.IsNullOrEmpty(hearts)) hearts = "NONE";
+
             if (livesText != null)
             {
-                string hearts = "";
-                for (int i = 0; i < lives; i++) hearts += "♥ ";
-                string wpnName = playerWeaponLevel == 1 ? "SINGLE" : (playerWeaponLevel == 2 ? "DUAL" : "SPREAD");
-                string shieldBadge = playerHasShield ? " [SHIELD]" : "";
-                string spStatus = (playerSpGauge >= 100f) ? " [SP READY: X!]" : $" [SP {Mathf.FloorToInt(playerSpGauge)}%]";
-                livesText.text = $"LIVES: {hearts.Trim()}    [WPN: {wpnName}]{shieldBadge}    {spStatus}";
+                livesText.text = $"생명력: {hearts.Trim()}";
+            }
+
+            if (weaponStatusText != null)
+            {
+                string wpnName = playerWeaponLevel == 1 ? "기본 레이저" : (playerWeaponLevel == 2 ? "듀얼 빔" : "3방향 확산 빔");
+                string shieldBadge = playerHasShield ? "가동중 (방어)" : "비활성";
+                string spStatus = (playerSpGauge >= 100f) ? "READY! (X키)" : $"{Mathf.FloorToInt(playerSpGauge)}%";
+                weaponStatusText.text = $"무기: {wpnName}\n보호막: {shieldBadge}\n필살기: {spStatus}";
             }
         }
     }
