@@ -47,6 +47,8 @@ namespace StarInvader
         {
             currentLives = maxLives;
             spriteRenderer = GetComponent<SpriteRenderer>();
+            minX = -GameConstants.SCREEN_WIDTH_HALF + 0.6f;
+            maxX = GameConstants.SCREEN_WIDTH_HALF - 0.6f;
         }
 
         private void Start()

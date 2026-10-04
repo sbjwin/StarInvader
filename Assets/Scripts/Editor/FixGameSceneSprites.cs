@@ -284,6 +284,7 @@ namespace StarInvader.Editor
             GameObject b1 = new GameObject("BG_Layer1");
             b1.transform.SetParent(bgParent.transform);
             b1.transform.position = Vector3.zero;
+            b1.transform.localScale = new Vector3(2.3f, 1f, 1f);
             SpriteRenderer sr1 = b1.AddComponent<SpriteRenderer>();
             sr1.sprite = bgSprite;
             sr1.sortingOrder = -10;
@@ -291,6 +292,7 @@ namespace StarInvader.Editor
             GameObject b2 = new GameObject("BG_Layer2");
             b2.transform.SetParent(bgParent.transform);
             b2.transform.position = new Vector3(0, 10f, 0);
+            b2.transform.localScale = new Vector3(2.3f, 1f, 1f);
             SpriteRenderer sr2 = b2.AddComponent<SpriteRenderer>();
             sr2.sprite = bgSprite;
             sr2.sortingOrder = -10;
@@ -379,11 +381,61 @@ namespace StarInvader.Editor
             }
             InGameController igc = igcObj.GetComponent<InGameController>();
 
-            // HUD Canvas 및 ComboText
+            // HUD Canvas 및 16:9 PC 와이드 최적화
             GameObject hudCanvas = GameObject.Find("HUDCanvas");
             Text comboTextComp = null;
             if (hudCanvas != null)
             {
+                CanvasScaler scaler = hudCanvas.GetComponent<CanvasScaler>();
+                if (scaler != null)
+                {
+                    scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
+                    scaler.referenceResolution = new Vector2(1920, 1080);
+                    scaler.matchWidthOrHeight = 0.5f;
+                }
+
+                // ScoreText 16:9 상단 좌측
+                GameObject scoreObj = GameObject.Find("ScoreText");
+                if (scoreObj != null)
+                {
+                    RectTransform sRt = scoreObj.GetComponent<RectTransform>();
+                    sRt.anchorMin = new Vector2(0, 1);
+                    sRt.anchorMax = new Vector2(0, 1);
+                    sRt.pivot = new Vector2(0, 1);
+                    sRt.anchoredPosition = new Vector2(40, -30);
+                    sRt.sizeDelta = new Vector2(650, 50);
+                    Text sText = scoreObj.GetComponent<Text>();
+                    if (sText != null) { sText.fontSize = 30; sText.fontStyle = FontStyle.Bold; }
+                }
+
+                // HighScoreText 16:9 상단 우측
+                GameObject hiScoreObj = GameObject.Find("HighScoreText");
+                if (hiScoreObj != null)
+                {
+                    RectTransform hRt = hiScoreObj.GetComponent<RectTransform>();
+                    hRt.anchorMin = new Vector2(1, 1);
+                    hRt.anchorMax = new Vector2(1, 1);
+                    hRt.pivot = new Vector2(1, 1);
+                    hRt.anchoredPosition = new Vector2(-40, -30);
+                    hRt.sizeDelta = new Vector2(450, 50);
+                    Text hText = hiScoreObj.GetComponent<Text>();
+                    if (hText != null) { hText.fontSize = 30; hText.fontStyle = FontStyle.Bold; hText.alignment = TextAnchor.MiddleRight; }
+                }
+
+                // LivesText 16:9 하단 전폭
+                GameObject livesObj = GameObject.Find("LivesText");
+                if (livesObj != null)
+                {
+                    RectTransform lRt = livesObj.GetComponent<RectTransform>();
+                    lRt.anchorMin = new Vector2(0, 0);
+                    lRt.anchorMax = new Vector2(1, 0);
+                    lRt.pivot = new Vector2(0, 0);
+                    lRt.anchoredPosition = new Vector2(40, 30);
+                    lRt.sizeDelta = new Vector2(-80, 50);
+                    Text lText = livesObj.GetComponent<Text>();
+                    if (lText != null) { lText.fontSize = 28; lText.fontStyle = FontStyle.Bold; }
+                }
+
                 Transform comboTr = hudCanvas.transform.Find("ComboText");
                 if (comboTr == null)
                 {
@@ -393,12 +445,12 @@ namespace StarInvader.Editor
                     cRt.anchorMin = new Vector2(0.5f, 0.5f);
                     cRt.anchorMax = new Vector2(0.5f, 0.5f);
                     cRt.pivot = new Vector2(0.5f, 0.5f);
-                    cRt.anchoredPosition = new Vector2(0, 260);
-                    cRt.sizeDelta = new Vector2(400, 50);
+                    cRt.anchoredPosition = new Vector2(0, 180);
+                    cRt.sizeDelta = new Vector2(800, 120);
 
                     comboTextComp = cObj.AddComponent<Text>();
                     comboTextComp.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf") ?? Resources.GetBuiltinResource<Font>("Arial.ttf");
-                    comboTextComp.fontSize = 24;
+                    comboTextComp.fontSize = 36;
                     comboTextComp.fontStyle = FontStyle.Bold;
                     comboTextComp.alignment = TextAnchor.MiddleCenter;
                     comboTextComp.color = Color.yellow;

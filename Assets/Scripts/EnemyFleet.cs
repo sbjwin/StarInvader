@@ -107,10 +107,11 @@ namespace StarInvader
                 diveIntervalMax = Mathf.Max(7.5f, 10.0f - (stage - 3) * 0.8f);
             }
 
+            boundaryX = GameConstants.SCREEN_WIDTH_HALF - 0.5f;
             fleetAnchorPosition = new Vector3(0, dynamicStartY, 0);
             transform.position = fleetAnchorPosition;
 
-            // 스테이지별 포메이션 레이아웃 획득
+            // 스테이지별 16:9 PC 와이드 포메이션 레이아웃 획득
             string[] layout = GetFormationLayoutForStage(stage);
             BuildFormationSlotsFromLayout(layout);
 
@@ -130,46 +131,46 @@ namespace StarInvader
             int patternIndex = (stage - 1) % 4;
             switch (patternIndex)
             {
-                case 0: // Stage 1: V자 화살촉 대형 (Arrowhead, 17기)
+                case 0: // Stage 1: 16:9 PC 와이드 V자 화살촉 대형 (Arrowhead, 13열 14기)
                     return new string[]
                     {
-                        "...T...",
-                        "..M.M..",
-                        ".M.M.M.",
-                        "B.B.B.B",
-                        "B.....B"
+                        "......T......",
+                        "....M...M....",
+                        "..M...M...M..",
+                        ".B...B...B...B",
+                        "B...B.....B..B"
                     };
 
-                case 1: // Stage 2: 다이아몬드 마름모 대형 (Diamond, 20기)
+                case 1: // Stage 2: 16:9 PC 와이드 다이아몬드 마름모 대형 (Diamond, 13열 13기)
                     return new string[]
                     {
-                        "...T...",
-                        "..T.T..",
-                        ".M...M.",
-                        "M.B.B.M",
-                        ".B...B.",
-                        "..B.B.."
+                        "......T......",
+                        "....T...T....",
+                        "..M.......M..",
+                        ".M...B.B...M.",
+                        "..B.......B..",
+                        "....B...B...."
                     };
 
-                case 2: // Stage 3: W자 듀얼 윙 날개 대형 (Dual Wings, 22기)
+                case 2: // Stage 3: 16:9 PC 와이드 W자 듀얼 윙 쌍날개 대형 (Dual Wings, 15열 16기)
                     return new string[]
                     {
-                        "T.....T",
-                        "M.T.T.M",
-                        "M.M.M.M",
-                        "B.B.B.B",
-                        ".B...B."
+                        "T.............T",
+                        ".M...T...T...M.",
+                        "..M..M...M..M..",
+                        "...B.B...B.B...",
+                        "....B.....B...."
                     };
 
-                case 3: // Stage 4+: 요새 크로스 대형 (Fortress, 26기)
+                case 3: // Stage 4+: 16:9 PC 와이드 요새 크로스 대형 (Fortress, 15열 21기)
                 default:
                     return new string[]
                     {
-                        ".T.T.T.",
-                        "M.T.T.M",
-                        "M.M.M.M",
-                        "B.M.M.B",
-                        "B.B.B.B"
+                        "...T...T...T...",
+                        ".M...T...T...M.",
+                        ".M.M...M...M.M.",
+                        "B...B.....B...B",
+                        ".B.B.......B.B."
                     };
             }
         }
@@ -180,7 +181,7 @@ namespace StarInvader
 
             int rows = layout.Length;
             int cols = layout[0].Length;
-            float spacingX = 0.8f;
+            float spacingX = 0.95f;
             float spacingY = 0.65f;
 
             float totalWidth = (cols - 1) * spacingX;

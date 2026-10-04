@@ -416,9 +416,9 @@ namespace StarInvader
         private void UpdateScoreUI()
         {
             int stage = (GameDataManager.Instance != null) ? GameDataManager.Instance.CurrentStage : 1;
-            string spStatus = (playerSpGauge >= 100f) ? " [SP READY: X!]" : $" [SP {Mathf.FloorToInt(playerSpGauge)}%]";
-            if (scoreText != null) scoreText.text = $"SCORE: {currentScore:D5} | STAGE {stage:D2}{spStatus}";
+            if (scoreText != null) scoreText.text = $"SCORE: {currentScore:D5} | STAGE {stage:D2}";
             if (highScoreText != null) highScoreText.text = $"HI-SCORE: {highScore:D5}";
+            UpdateLivesUI(player != null ? player.CurrentLives : 3);
         }
 
         private void UpdateLivesUI(int lives)
@@ -429,7 +429,8 @@ namespace StarInvader
                 for (int i = 0; i < lives; i++) hearts += "♥ ";
                 string wpnName = playerWeaponLevel == 1 ? "SINGLE" : (playerWeaponLevel == 2 ? "DUAL" : "SPREAD");
                 string shieldBadge = playerHasShield ? " [SHIELD]" : "";
-                livesText.text = $"LIVES: {hearts.Trim()}  [WPN: {wpnName}]{shieldBadge}";
+                string spStatus = (playerSpGauge >= 100f) ? " [SP READY: X!]" : $" [SP {Mathf.FloorToInt(playerSpGauge)}%]";
+                livesText.text = $"LIVES: {hearts.Trim()}    [WPN: {wpnName}]{shieldBadge}    {spStatus}";
             }
         }
     }
