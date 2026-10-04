@@ -252,7 +252,7 @@ namespace StarInvader
             Bullet[] bullets = FindObjectsByType<Bullet>(FindObjectsSortMode.None);
             foreach (var b in bullets)
             {
-                if (b != null && b.CompareTag("EnemyBullet"))
+                if (b != null && b.IsEnemyBullet)
                 {
                     Destroy(b.gameObject);
                 }
