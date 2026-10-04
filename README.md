@@ -4,7 +4,7 @@
 
 ![Unity Version](https://img.shields.io/badge/Unity-6000.3.22f1%20(Unity%206)-blue.svg?style=for-the-badge&logo=unity)
 ![C#](https://img.shields.io/badge/Language-C%23%209.0-239120.svg?style=for-the-badge&logo=c-sharp)
-![Version](https://img.shields.io/badge/Release-v0.3-orange.svg?style=for-the-badge)
+![Version](https://img.shields.io/badge/Release-v0.4-orange.svg?style=for-the-badge)
 ![Platform](https://img.shields.io/badge/Platform-Standalone%20PC%20%2F%20Windows-lightgrey.svg?style=for-the-badge)
 ![License](https://img.shields.io/badge/License-MIT-green.svg?style=for-the-badge)
 
@@ -25,11 +25,14 @@
 
 ---
 
-## 🎮 게임 주요 특징 (v0.3 Key Features)
+## 🎮 게임 주요 특징 (v0.4 Key Features)
 
-**Star Invader**는 지구를 침략하려는 외계 편대(Alien Fleet)와 미스터리 모함의 공습을 저지하는 클래식 2D 아케이드 슈팅 게임입니다. 
+**Star Invader**는 지구를 침략하려는 외계 편대(Alien Fleet)와 미스터리 모함의 공습을 저지하는 클래식 2D 아케이드 슈팅 게임입니다.
 
-* **📐 레벨별 다채로운 포메이션 대형:** 
+* **🖥️ 16:9 PC 아케이드 3분할 윙(Side Wings) 캐비닛 화면:**
+  - 현대적 16:9 PC 모니터에 최적화된 아케이드 캐비닛 레이아웃(좌/우 윙 패널 + 중앙 3:4 고해상도 전투 뷰포트).
+  - 배경 그래픽 종횡비 왜곡 없이 원본의 정밀한 3:4 슈팅 시야각 및 HUD 완전 밀착 구현.
+* **📐 레벨별 다채로운 포메이션 대형 & 편대 확장:** 
   - **STAGE 1**: V자 화살촉 대형 (Arrowhead, 17기)
   - **STAGE 2**: 다이아몬드 마름모 대형 (Diamond, 20기)
   - **STAGE 3**: W자 듀얼 윙 대형 (Dual Wings, 22기)
@@ -40,11 +43,9 @@
   - 대열 내 적기가 불시에 이탈하여 S자 포물선으로 플레이어를 향해 급강하하며 조준탄 사격.
   - 돌진 적 격파 시 **점수 2배 가산** 및 **드롭 아이템 100% 확정 지급**.
   - 비워진 슬롯은 **화면 상단에서 신규 기체가 날아와 정확히 슬롯에 도킹(안착)**하는 아케이드 증원 루프 구현.
-* **💥 고도화된 적 탄막 패턴:**
-  - 하단기(Bottom): 수직 단발 사격
-  - 중단기(Mid): **2발 팔자(V자) 확산 사격** (±18°)
-  - 상단기(Top): **3발 부채꼴 확산 사격** (±24°, 0°)
-  - 돌진기(Diving): 플레이어 실시간 위치 겨냥 **초고속 조준탄 사격**
+* **💥 최전선 정밀 수직 단발 탄막 & 밸런싱:**
+  - 불필요한 방사형 난사를 지양하고 클래식 인베이더의 긴장감을 살린 최전선 적기 수직 단발 사격 시스템.
+  - 스테이지별 최적 탄속 및 발사 주기 적용으로 경쾌하고 공정한 플레이 감각 완성.
 * **🚀 3단계 주무기 성장 & [하이퍼 메가 빔] 특수 무기:**
   - **Lv.1**: 정중앙 단발 사격
   - **Lv.2**: 정중앙 좌/우 날개 오프셋에서 **2발 평행 동시 발사**

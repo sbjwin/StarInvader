@@ -7,6 +7,9 @@ namespace StarInvader
     /// </summary>
     public static class GameConstants
     {
+        // 프로젝트 버전 정보
+        public const string GAME_VERSION = "v0.4";
+
         // 중앙 전투 전장 경계 (16:9 PC 창 내 중앙 50% 3:4 전장, 가로 반경 4.3f / 전체 폭 8.6f)
         public const float SCREEN_WIDTH_HALF = 4.3f;
         public const float SCREEN_HEIGHT_HALF = 5.0f;
