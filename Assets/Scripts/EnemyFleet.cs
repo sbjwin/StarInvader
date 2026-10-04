@@ -78,19 +78,19 @@ namespace StarInvader
             int stage = currentStage;
             motionTimer = 0f;
 
-            float dynamicStartY = Mathf.Max(2.0f, GameConstants.ENEMY_START_Y - (stage - 1) * 0.25f);
-            float dynamicBaseSpeed = Mathf.Min(2.4f, baseSpeed + (stage - 1) * 0.10f);
+            float dynamicStartY = Mathf.Max(2.4f, GameConstants.ENEMY_START_Y - (stage - 1) * 0.20f);
+            float dynamicBaseSpeed = Mathf.Min(2.0f, baseSpeed + (stage - 1) * 0.08f);
 
-            // [밸런스 완화] 사격 주기: Stage 1은 2.2~3.5초로 여유롭게, 고레벨로 갈수록 점진적 단축
-            shootIntervalMin = Mathf.Max(0.8f, 2.2f - (stage - 1) * 0.35f);
-            shootIntervalMax = Mathf.Max(1.4f, 3.5f - (stage - 1) * 0.45f);
+            // [밸런스 완화] 사격 주기: Stage 1은 2.5~3.8초, Stage 4도 1.7~2.7초로 보고 피할 수 있는 템포 유지
+            shootIntervalMin = Mathf.Max(1.5f, 2.5f - (stage - 1) * 0.25f);
+            shootIntervalMax = Mathf.Max(2.3f, 3.8f - (stage - 1) * 0.35f);
 
-            // [밸런스 완화] 상단 증원 쿼터: Stage 1은 0기(증원 없음), Stage 2는 2기, Stage 3+는 4~6기
+            // [밸런스 완화] 상단 증원 쿼터: 피로감 완화 (Stage 1: 0기, Stage 2: 1기, Stage 3+: 2기로 제한)
             if (stage == 1) remainingReinforcements = 0;
-            else if (stage == 2) remainingReinforcements = 2;
-            else remainingReinforcements = Mathf.Min(6, 4 + (stage - 3) * 2);
+            else if (stage == 2) remainingReinforcements = 1;
+            else remainingReinforcements = Mathf.Min(2, 1 + (stage - 2));
 
-            // [밸런스 완화] 급강하 돌진 주기: Stage 1은 완전 금지, Stage 2는 10~15초로 드물게
+            // [밸런스 완화] 급강하 돌진 주기: Stage 1은 완전 금지, Stage 2는 12~18초, Stage 4는 9~14초로 여유 확보
             if (stage == 1)
             {
                 diveIntervalMin = 9999f;
@@ -98,13 +98,13 @@ namespace StarInvader
             }
             else if (stage == 2)
             {
-                diveIntervalMin = 10.0f;
-                diveIntervalMax = 15.0f;
+                diveIntervalMin = 12.0f;
+                diveIntervalMax = 18.0f;
             }
             else
             {
-                diveIntervalMin = Mathf.Max(4.5f, 6.5f - (stage - 3) * 0.6f);
-                diveIntervalMax = Mathf.Max(7.5f, 10.0f - (stage - 3) * 0.8f);
+                diveIntervalMin = Mathf.Max(8.0f, 11.0f - (stage - 3) * 1.0f);
+                diveIntervalMax = Mathf.Max(12.0f, 15.0f - (stage - 3) * 1.0f);
             }
 
             boundaryX = GameConstants.SCREEN_WIDTH_HALF - 0.5f;
@@ -162,14 +162,14 @@ namespace StarInvader
                         "..B...B.."
                     };
 
-                case 3: // Stage 4+: 아케이드 요새 크로스 대형 (Fortress, 9열 20기)
+                case 3: // Stage 4+: 아케이드 요새 크로스 대형 (Fortress, 9열 16기)
                 default:
                     return new string[]
                     {
-                        ".T..T..T.",
-                        "M.T.T.T.M",
-                        "M.M.M.M.M",
-                        "B.M.M.M.B",
+                        ".T.....T.",
+                        "...T.T...",
+                        "M...M...M",
+                        ".M.M.M.M.",
                         "B.B.B.B.B"
                     };
             }
@@ -346,8 +346,8 @@ namespace StarInvader
 
             Vector3 spawnPos = shooter.transform.position + Vector3.down * 0.35f;
 
-            // [밸런스 완화] 탄환 속도: Stage 1은 3.8f로 여유롭게, 레벨마다 0.7f씩 상승 (최대 5.8f)
-            float dynamicBulletSpeed = Mathf.Min(5.8f, 3.8f + (currentStage - 1) * 0.7f);
+            // [밸런스 완화] 탄환 속도: Stage 1은 3.4f, 레벨마다 0.35f씩 완만히 상승 (Stage 4: 4.45f, 최대 4.6f)
+            float dynamicBulletSpeed = Mathf.Min(4.6f, 3.4f + (currentStage - 1) * 0.35f);
 
             // [밸런스 완화] 스테이지별 탄막 패턴 단계적 해금
             if (currentStage == 1)
@@ -410,7 +410,7 @@ namespace StarInvader
         public void FireAimedBullet(Vector3 fromPos, Vector3 targetPos)
         {
             if (enemyBulletPrefab == null) return;
-            float dynamicBulletSpeed = Mathf.Min(5.8f, 3.8f + (currentStage - 1) * 0.7f) * 1.1f;
+            float dynamicBulletSpeed = Mathf.Min(4.8f, 3.4f + (currentStage - 1) * 0.35f) * 1.1f;
             Vector2 aimDir = (targetPos - fromPos).normalized;
             GameObject bObj = Instantiate(enemyBulletPrefab, fromPos, Quaternion.identity);
             Bullet bulletComp = bObj.GetComponent<Bullet>();
