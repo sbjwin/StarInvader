@@ -124,6 +124,10 @@ namespace StarInvader
             totalInitialEnemies = activeEnemies.Count + remainingReinforcements;
             currentSpeed = dynamicBaseSpeed;
             moveDirection = 1;
+
+            // 스테이지 시작 시 최소 안전 유예 시간 부여 (시작하자마자 기습 사격/돌진 방지)
+            nextShootTime = Time.time + 2.5f;
+            nextDiveTime = Time.time + 6.0f;
         }
 
         private string[] GetFormationLayoutForStage(int stage)
@@ -330,64 +334,54 @@ namespace StarInvader
         {
             if (activeEnemies.Count == 0 || enemyBulletPrefab == null) return;
 
-            // 대열 내에 있는 적기 중 무작위 1기 선정
-            List<Enemy> formationEnemies = new List<Enemy>();
-            foreach (var e in activeEnemies)
+            // [정통 아케이드 룰] 각 열(X축)에서 살아있는 적 중 '가장 아래쪽(최전선 앞줄)' 적기만 사격 후보로 선정!
+            // (맨 꼭대기 뒷줄 적기가 아군을 뚫고 쏘는 황당한 기습 원천 차단)
+            Dictionary<int, Enemy> lowestEnemyPerCol = new Dictionary<int, Enemy>();
+
+            foreach (var slot in formationSlots)
             {
-                if (e != null && e.State == EnemyState.InFormation)
+                if (slot.currentEnemy != null && slot.currentEnemy.State == EnemyState.InFormation)
                 {
-                    formationEnemies.Add(e);
+                    int colKey = Mathf.RoundToInt(slot.localOffset.x * 100f);
+
+                    if (!lowestEnemyPerCol.ContainsKey(colKey))
+                    {
+                        lowestEnemyPerCol[colKey] = slot.currentEnemy;
+                    }
+                    else
+                    {
+                        // Y 좌표가 더 아래에 있는 적기로 갱신
+                        if (slot.localOffset.y < lowestEnemyPerCol[colKey].transform.localPosition.y)
+                        {
+                            lowestEnemyPerCol[colKey] = slot.currentEnemy;
+                        }
+                    }
                 }
             }
 
-            if (formationEnemies.Count == 0) return;
-            Enemy shooter = formationEnemies[Random.Range(0, formationEnemies.Count)];
+            if (lowestEnemyPerCol.Count == 0) return;
+
+            List<Enemy> frontlineShooters = new List<Enemy>(lowestEnemyPerCol.Values);
+            Enemy shooter = frontlineShooters[Random.Range(0, frontlineShooters.Count)];
             if (shooter == null) return;
 
             Vector3 spawnPos = shooter.transform.position + Vector3.down * 0.35f;
 
-            // [밸런스 완화] 탄환 속도: Stage 1은 3.4f, 레벨마다 0.35f씩 완만히 상승 (Stage 4: 4.45f, 최대 4.6f)
-            float dynamicBulletSpeed = Mathf.Min(4.6f, 3.4f + (currentStage - 1) * 0.35f);
+            // [밸런스 완화] 탄환 속도: Stage 1은 3.0f, Stage 4도 3.9f 수준으로 보고 피할 수 있는 공정한 탄속
+            float dynamicBulletSpeed = Mathf.Min(4.0f, 3.0f + (currentStage - 1) * 0.30f);
 
-            // [밸런스 완화] 스테이지별 탄막 패턴 단계적 해금
-            if (currentStage == 1)
+            // [핵심 해결] 화면 전체로 퍼지는 황당한 방사형/부채꼴 탄막 100% 영구 삭제!
+            // 모든 탄환은 플레이어가 침착하게 좌우 스텝으로 피할 수 있는 정직한 수직(Vector2.down) 사격으로 통일
+            if (currentStage >= 3 && shooter.Type == EnemyType.Mid && Random.value < 0.25f)
             {
-                // Stage 1: 100% 무조건 느린 수직 1발 단발만 발사 (초보자 안심 적응)
-                FireBullet(spawnPos, Vector2.down, dynamicBulletSpeed);
-            }
-            else if (currentStage == 2)
-            {
-                // Stage 2: 기본 수직 단발 위주 + 가끔(25%) Mid 기체만 2발 팔자탄 발사
-                if (shooter.Type == EnemyType.Mid && Random.value < 0.25f)
-                {
-                    FireBullet(spawnPos + new Vector3(-0.1f, 0, 0), Quaternion.Euler(0, 0, 16f) * Vector2.down, dynamicBulletSpeed);
-                    FireBullet(spawnPos + new Vector3(0.1f, 0, 0), Quaternion.Euler(0, 0, -16f) * Vector2.down, dynamicBulletSpeed);
-                }
-                else
-                {
-                    FireBullet(spawnPos, Vector2.down, dynamicBulletSpeed);
-                }
+                // Stage 3 이상에서 가끔 나오는 좁은 평행 2발 (각도 없이 수직 평행이라 피하기 명확함)
+                FireBullet(spawnPos + new Vector3(-0.16f, 0, 0), Vector2.down, dynamicBulletSpeed);
+                FireBullet(spawnPos + new Vector3(0.16f, 0, 0), Vector2.down, dynamicBulletSpeed);
             }
             else
             {
-                // Stage 3 이상: 본격적인 2발 팔자 및 3발 부채꼴 확산 탄막 전개
-                switch (shooter.Type)
-                {
-                    case EnemyType.Bottom:
-                        FireBullet(spawnPos, Vector2.down, dynamicBulletSpeed);
-                        break;
-
-                    case EnemyType.Mid:
-                        FireBullet(spawnPos + new Vector3(-0.1f, 0, 0), Quaternion.Euler(0, 0, 18f) * Vector2.down, dynamicBulletSpeed);
-                        FireBullet(spawnPos + new Vector3(0.1f, 0, 0), Quaternion.Euler(0, 0, -18f) * Vector2.down, dynamicBulletSpeed);
-                        break;
-
-                    case EnemyType.Top:
-                        FireBullet(spawnPos, Vector2.down, dynamicBulletSpeed);
-                        FireBullet(spawnPos, Quaternion.Euler(0, 0, 24f) * Vector2.down, dynamicBulletSpeed);
-                        FireBullet(spawnPos, Quaternion.Euler(0, 0, -24f) * Vector2.down, dynamicBulletSpeed);
-                        break;
-                }
+                // 정직한 수직 1발 단발
+                FireBullet(spawnPos, Vector2.down, dynamicBulletSpeed);
             }
 
             if (SoundManager.Instance != null)
@@ -410,13 +404,14 @@ namespace StarInvader
         public void FireAimedBullet(Vector3 fromPos, Vector3 targetPos)
         {
             if (enemyBulletPrefab == null) return;
-            float dynamicBulletSpeed = Mathf.Min(4.8f, 3.4f + (currentStage - 1) * 0.35f) * 1.1f;
-            Vector2 aimDir = (targetPos - fromPos).normalized;
+            // 돌진 중 사격도 플레이어를 직접 저격하기보다 정직하게 아래쪽으로 투하
+            float dynamicBulletSpeed = Mathf.Min(4.0f, 3.0f + (currentStage - 1) * 0.30f);
+            Vector2 dropDir = Vector2.down;
             GameObject bObj = Instantiate(enemyBulletPrefab, fromPos, Quaternion.identity);
             Bullet bulletComp = bObj.GetComponent<Bullet>();
             if (bulletComp != null)
             {
-                bulletComp.Initialize(aimDir, dynamicBulletSpeed, true);
+                bulletComp.Initialize(dropDir, dynamicBulletSpeed, true);
             }
         }
 
