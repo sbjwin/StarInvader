@@ -3,7 +3,7 @@ using UnityEngine;
 namespace StarInvader
 {
     /// <summary>
-    /// 플레이어 및 적 탄환 기본 동작 및 충돌 판정 (bullet.py 대응)
+    /// 플레이어 및 적 탄환 기본 동작 및 충돌 판정
     /// </summary>
     public class Bullet : MonoBehaviour
     {
