@@ -395,6 +395,7 @@ namespace StarInvader
 
         public int CurrentLives => currentLives;
         public int WeaponLevel => weaponLevel;
+        public int UnlockedWeaponLevel => unlockedWeaponLevel;
         public float SpGauge => spGauge;
         public float MaxSpGauge => maxSpGauge;
         public bool HasShield => hasShield;
