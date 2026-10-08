@@ -184,5 +184,62 @@ namespace StarInvader
 
             return false;
         }
+
+        public static bool IsWeapon1Pressed()
+        {
+#if ENABLE_INPUT_SYSTEM
+            try
+            {
+                if (Keyboard.current != null && (Keyboard.current.digit1Key.wasPressedThisFrame || Keyboard.current.numpad1Key.wasPressedThisFrame)) return true;
+            }
+            catch { }
+#endif
+#if ENABLE_LEGACY_INPUT_MANAGER
+            try
+            {
+                if (Input.GetKeyDown(KeyCode.Alpha1) || Input.GetKeyDown(KeyCode.Keypad1)) return true;
+            }
+            catch { }
+#endif
+            return false;
+        }
+
+        public static bool IsWeapon2Pressed()
+        {
+#if ENABLE_INPUT_SYSTEM
+            try
+            {
+                if (Keyboard.current != null && (Keyboard.current.digit2Key.wasPressedThisFrame || Keyboard.current.numpad2Key.wasPressedThisFrame)) return true;
+            }
+            catch { }
+#endif
+#if ENABLE_LEGACY_INPUT_MANAGER
+            try
+            {
+                if (Input.GetKeyDown(KeyCode.Alpha2) || Input.GetKeyDown(KeyCode.Keypad2)) return true;
+            }
+            catch { }
+#endif
+            return false;
+        }
+
+        public static bool IsWeapon3Pressed()
+        {
+#if ENABLE_INPUT_SYSTEM
+            try
+            {
+                if (Keyboard.current != null && (Keyboard.current.digit3Key.wasPressedThisFrame || Keyboard.current.numpad3Key.wasPressedThisFrame)) return true;
+            }
+            catch { }
+#endif
+#if ENABLE_LEGACY_INPUT_MANAGER
+            try
+            {
+                if (Input.GetKeyDown(KeyCode.Alpha3) || Input.GetKeyDown(KeyCode.Keypad3)) return true;
+            }
+            catch { }
+#endif
+            return false;
+        }
     }
 }

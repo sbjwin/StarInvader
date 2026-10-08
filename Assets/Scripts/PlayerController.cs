@@ -25,11 +25,12 @@ namespace StarInvader
         [SerializeField] private float invincibleDuration = GameConstants.PLAYER_INVINCIBLE_DURATION;
 
         [Header("무기 및 특수기 설정")]
-        [SerializeField] private int weaponLevel = 1; // 1: 중앙 단발, 2: 좌우 듀얼, 3: 3방향 확산
+        [SerializeField] private int weaponLevel = 1; // 1: 중앙 단발, 2: 좌우 듀얼, 3: 3방향 확산 산탄
         [SerializeField] private float spGauge = 0f;
         [SerializeField] private float maxSpGauge = 100f;
         [SerializeField] private bool hasShield = false;
 
+        private int unlockedWeaponLevel = 1; // 해금된 최대 무기 레벨 (아이템 획득 시 증가)
         private int currentLives;
         private bool isInvincible = false;
         private bool isFiringSpecial = false;
@@ -71,6 +72,7 @@ namespace StarInvader
         public void ResetPlayer()
         {
             currentLives = maxLives;
+            unlockedWeaponLevel = 1;
             weaponLevel = 1;
             spGauge = 0f;
             hasShield = false;
@@ -90,8 +92,44 @@ namespace StarInvader
         private void Update()
         {
             HandleMovement();
+            HandleWeaponSwitching();
             HandleShooting();
             HandleSpecialWeapon();
+        }
+
+        private void HandleWeaponSwitching()
+        {
+            if (InputHelper.IsWeapon1Pressed())
+            {
+                SetCurrentWeaponMode(1);
+            }
+            else if (InputHelper.IsWeapon2Pressed())
+            {
+                if (unlockedWeaponLevel >= 2)
+                {
+                    SetCurrentWeaponMode(2);
+                }
+            }
+            else if (InputHelper.IsWeapon3Pressed())
+            {
+                if (unlockedWeaponLevel >= 3)
+                {
+                    SetCurrentWeaponMode(3);
+                }
+            }
+        }
+
+        private void SetCurrentWeaponMode(int mode)
+        {
+            if (weaponLevel != mode)
+            {
+                weaponLevel = mode;
+                OnWeaponLevelChanged?.Invoke(weaponLevel);
+                if (SoundManager.Instance != null)
+                {
+                    SoundManager.Instance.PlayComboSound(1.0f + (mode - 1) * 0.2f);
+                }
+            }
         }
 
         private void HandleMovement()
@@ -150,10 +188,10 @@ namespace StarInvader
                 }
                 else
                 {
-                    // Lv.3: 정중앙 1발 + 좌/우 각도(±14°) 3방향 확산 발사
+                    // Lv.3: 정중앙 1발 + 좌/우 각도(±15°) 3방향 확산 산탄 발사 (\ | /)
                     SpawnBullet(basePos, Vector2.up);
-                    SpawnBullet(basePos + new Vector3(-0.2f, 0, 0), (Quaternion.Euler(0, 0, 14f) * Vector2.up));
-                    SpawnBullet(basePos + new Vector3(0.2f, 0, 0), (Quaternion.Euler(0, 0, -14f) * Vector2.up));
+                    SpawnBullet(basePos + new Vector3(-0.22f, 0, 0), (Quaternion.Euler(0, 0, 15f) * Vector2.up));
+                    SpawnBullet(basePos + new Vector3(0.22f, 0, 0), (Quaternion.Euler(0, 0, -15f) * Vector2.up));
                 }
             }
 
@@ -235,7 +273,8 @@ namespace StarInvader
 
         public void UpgradeWeapon()
         {
-            weaponLevel = Mathf.Min(3, weaponLevel + 1);
+            unlockedWeaponLevel = Mathf.Min(3, unlockedWeaponLevel + 1);
+            weaponLevel = unlockedWeaponLevel;
             OnWeaponLevelChanged?.Invoke(weaponLevel);
             if (SoundManager.Instance != null) SoundManager.Instance.PlayComboSound(1.3f);
         }
@@ -378,7 +417,8 @@ namespace StarInvader
 
         public void SetWeaponLevel(int level)
         {
-            weaponLevel = Mathf.Clamp(level, 1, 3);
+            unlockedWeaponLevel = Mathf.Clamp(level, 1, 3);
+            weaponLevel = unlockedWeaponLevel;
             OnWeaponLevelChanged?.Invoke(weaponLevel);
         }
 

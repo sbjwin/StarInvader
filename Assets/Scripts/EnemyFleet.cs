@@ -134,48 +134,69 @@ namespace StarInvader
 
         private string[] GetFormationLayoutForStage(int stage)
         {
-            int patternIndex = (stage - 1) % 4;
+            int patternIndex = (stage - 1) % 6;
             switch (patternIndex)
             {
-                case 0: // Stage 1: 아케이드 V자 화살촉 대형 (Arrowhead, 9열 14기)
+                case 0: // Stage 1: 아케이드 V자 전초 대형 (Arrowhead, 13기 - 입문형)
                     return new string[]
                     {
                         "....T....",
                         "...M.M...",
-                        "..M.M.M..",
+                        "..M...M..",
                         ".B.B.B.B.",
-                        "B...B...B"
+                        "B.......B"
                     };
 
-                case 1: // Stage 2: 아케이드 다이아몬드 마름모 대형 (Diamond, 9열 13기)
+                case 1: // Stage 2: 아케이드 다이아몬드 돌파형 (Diamond, 15기 - 화력 확장)
                     return new string[]
                     {
                         "....T....",
-                        "...T.T...",
-                        "..M...M..",
-                        ".M.B.B.M.",
-                        "..B...B..",
-                        "...B.B..."
+                        "...M.M...",
+                        "..M.T.M..",
+                        ".B.M.M.B.",
+                        "..B.B.B..",
+                        "....B...."
                     };
 
-                case 2: // Stage 3: 아케이드 W자 듀얼 윙 쌍날개 대형 (Dual Wings, 9열 16기)
+                case 2: // Stage 3: W자 듀얼 윙 폭격형 (Dual Wings, 18기 - 양익 압박)
                     return new string[]
                     {
                         "T.......T",
                         ".M.T.T.M.",
                         ".M.M.M.M.",
                         "B.B.B.B.B",
+                        ".B.....B."
+                    };
+
+                case 3: // Stage 4: 철벽 요새 크로스형 (Fortress Cross, 20기 - 방어벽 밀집)
+                    return new string[]
+                    {
+                        ".T..T..T.",
+                        "..M.T.M..",
+                        "M..M.M..M",
+                        ".M.B.B.M.",
+                        "B.B...B.B"
+                    };
+
+                case 4: // Stage 5: 인베이더 스페이스 스컬 대형 (Space Skull, 22기 - 해골 위압감)
+                    return new string[]
+                    {
+                        "..T.T.T..",
+                        ".T..T..T.",
+                        "M.T...T.M",
+                        ".M.M.M.M.",
+                        ".B.B.B.B.",
                         "..B...B.."
                     };
 
-                case 3: // Stage 4+: 아케이드 요새 크로스 대형 (Fortress, 9열 16기)
+                case 5: // Stage 6+: 인피니티 옥타곤 결전 대형 (Infinity Octagon, 24기 - 최종 화력전)
                 default:
                     return new string[]
                     {
-                        ".T.....T.",
-                        "...T.T...",
-                        "M...M...M",
-                        ".M.M.M.M.",
+                        "T...T...T",
+                        ".M.T.T.M.",
+                        "M.M.M.M.M",
+                        ".B.M.M.B.",
                         "B.B.B.B.B"
                     };
             }
@@ -210,6 +231,22 @@ namespace StarInvader
             }
         }
 
+        private int GetHpForEnemy(EnemyType type, int stage)
+        {
+            if (stage <= 1) return 1;
+
+            switch (type)
+            {
+                case EnemyType.Top:
+                    return stage >= 4 ? 3 : 2; // 지휘관기: Stage 2~3은 2, Stage 4+는 3
+                case EnemyType.Mid:
+                    return stage >= 3 ? 2 : 1; // 중형기: Stage 3+는 2
+                case EnemyType.Bottom:
+                default:
+                    return 1;
+            }
+        }
+
         private void SpawnEnemyInSlot(FormationSlot slot)
         {
             GameObject prefab = GetPrefabForType(slot.type);
@@ -228,7 +265,8 @@ namespace StarInvader
             Enemy enemyComp = enemyObj.GetComponent<Enemy>();
             if (enemyComp == null) enemyComp = enemyObj.AddComponent<Enemy>();
 
-            enemyComp.Setup(slot.type);
+            int hp = GetHpForEnemy(slot.type, currentStage);
+            enemyComp.Setup(slot.type, hp);
             enemyComp.AssignSlot(this, slot.slotIndex, slot.localOffset);
             enemyComp.OnDestroyed += HandleEnemyDestroyed;
 
@@ -239,29 +277,37 @@ namespace StarInvader
 
         private void CalculateCurrentMotion(out Vector3 motionOffset, out float pulseScale)
         {
-            int motionPattern = (currentStage - 1) % 4;
+            int motionPattern = (currentStage - 1) % 5;
             float motionOffsetX = 0f;
             float motionOffsetY = 0f;
             pulseScale = 1.0f;
 
             switch (motionPattern)
             {
-                case 0: // Stage 1: 은은한 호흡 부유 (Gentle Sway)
-                    motionOffsetY = Mathf.Sin(motionTimer * 1.8f) * 0.18f;
+                case 0: // Stage 1: 완만한 호흡 부유 (Gentle Floating)
+                    motionOffsetY = Mathf.Sin(motionTimer * 2.0f) * 0.20f;
                     break;
 
-                case 1: // Stage 2: 롤러코스터 사인파 웨이브 (Sine Wave Fluctuation)
-                    motionOffsetY = Mathf.Sin(motionTimer * 2.8f) * 0.45f;
-                    break;
-
-                case 2: // Stage 3: 8자(∞) 입체 선회 (Figure-8 Orbit)
-                    motionOffsetX = Mathf.Sin(motionTimer * 1.6f) * 0.55f;
+                case 1: // Stage 2: 롤러코스터 파도타기 웨이브 (Sine Wave Surfing)
+                    motionOffsetX = Mathf.Cos(motionTimer * 2.2f) * 0.25f;
                     motionOffsetY = Mathf.Sin(motionTimer * 3.2f) * 0.35f;
                     break;
 
-                case 3: // Stage 4+: 호흡 팽창 & 변칙 기동 (Breathing Pulse)
-                    motionOffsetY = Mathf.Sin(motionTimer * 2.2f) * 0.22f;
+                case 2: // Stage 3: 8자(∞) 입체 선회 궤적 (Figure-8 Orbit)
+                    motionOffsetX = Mathf.Sin(motionTimer * 1.8f) * 0.40f;
+                    motionOffsetY = Mathf.Sin(motionTimer * 3.6f) * 0.25f;
+                    break;
+
+                case 3: // Stage 4: 진자 스윙 & 호흡 펄스 (Pendulum Pulse)
+                    motionOffsetX = Mathf.Sin(motionTimer * 2.4f) * 0.30f;
+                    motionOffsetY = Mathf.Cos(motionTimer * 2.4f) * 0.20f;
                     pulseScale = 1.0f + Mathf.Sin(motionTimer * 2.6f) * 0.08f;
+                    break;
+
+                case 4: // Stage 5+: 다이나믹 카오스 요동 (Dynamic Chaos Sway)
+                    motionOffsetX = (Mathf.Sin(motionTimer * 2.6f) + Mathf.Cos(motionTimer * 1.3f)) * 0.22f;
+                    motionOffsetY = Mathf.Sin(motionTimer * 3.4f) * 0.28f;
+                    pulseScale = 1.0f + Mathf.Sin(motionTimer * 3.0f) * 0.06f;
                     break;
             }
 
@@ -365,11 +411,11 @@ namespace StarInvader
             if (activeEnemies.Count == 0 || enemyBulletPrefab == null) return;
 
             // [정통 아케이드 룰] 각 열(X축)에서 살아있는 적 중 '가장 아래쪽(최전선 앞줄)' 적기만 사격 후보로 선정!
-            // (맨 꼭대기 뒷줄 적기가 아군을 뚫고 쏘는 황당한 기습 원천 차단)
             Dictionary<int, Enemy> lowestEnemyPerCol = new Dictionary<int, Enemy>();
 
-            foreach (var slot in formationSlots)
+            for (int i = 0; i < formationSlots.Count; i++)
             {
+                var slot = formationSlots[i];
                 if (slot.currentEnemy != null && slot.currentEnemy.State == EnemyState.InFormation)
                 {
                     int colKey = Mathf.RoundToInt(slot.localOffset.x * 100f);
@@ -380,7 +426,6 @@ namespace StarInvader
                     }
                     else
                     {
-                        // Y 좌표가 더 아래에 있는 적기로 갱신
                         if (slot.localOffset.y < lowestEnemyPerCol[colKey].transform.localPosition.y)
                         {
                             lowestEnemyPerCol[colKey] = slot.currentEnemy;
@@ -396,22 +441,85 @@ namespace StarInvader
             if (shooter == null) return;
 
             Vector3 spawnPos = shooter.transform.position + Vector3.down * 0.35f;
+            float dynamicBulletSpeed = Mathf.Min(4.2f, 3.0f + (currentStage - 1) * 0.25f);
 
-            // [밸런스 완화] 탄환 속도: Stage 1은 3.0f, Stage 4도 3.9f 수준으로 보고 피할 수 있는 공정한 탄속
-            float dynamicBulletSpeed = Mathf.Min(4.0f, 3.0f + (currentStage - 1) * 0.30f);
+            // [다채로운 피격 탄환 패턴]
+            // 1: 단발 수직 (|)
+            // 2: 2중 피탄 사격 (/ \) - 각도 ±14°
+            // 3: 3단 피탄 사격 (/ | \) - 각도 -18°, 0°, +18°
+            int bulletPattern = 1;
+            float roll = Random.value;
 
-            // [핵심 해결] 화면 전체로 퍼지는 황당한 방사형/부채꼴 탄막 100% 영구 삭제!
-            // 모든 탄환은 플레이어가 침착하게 좌우 스텝으로 피할 수 있는 정직한 수직(Vector2.down) 사격으로 통일
-            if (currentStage >= 3 && shooter.Type == EnemyType.Mid && Random.value < 0.25f)
+            if (shooter.Type == EnemyType.Top)
             {
-                // Stage 3 이상에서 가끔 나오는 좁은 평행 2발 (각도 없이 수직 평행이라 피하기 명확함)
-                FireBullet(spawnPos + new Vector3(-0.16f, 0, 0), Vector2.down, dynamicBulletSpeed);
-                FireBullet(spawnPos + new Vector3(0.16f, 0, 0), Vector2.down, dynamicBulletSpeed);
+                // 지휘관기: 고스테이지일수록 3단 확산 사격 빈도 대폭 증가!
+                if (currentStage >= 3)
+                {
+                    bulletPattern = (roll < 0.60f) ? 3 : 2;
+                }
+                else if (currentStage == 2)
+                {
+                    if (roll < 0.35f) bulletPattern = 3;
+                    else if (roll < 0.75f) bulletPattern = 2;
+                    else bulletPattern = 1;
+                }
+                else
+                {
+                    bulletPattern = (roll < 0.40f) ? 2 : 1;
+                }
             }
-            else
+            else if (shooter.Type == EnemyType.Mid)
             {
-                // 정직한 수직 1발 단발
-                FireBullet(spawnPos, Vector2.down, dynamicBulletSpeed);
+                // 중형기: 2중 사격 위주 + 상위 스테이지에서 3단 사격 혼합
+                if (currentStage >= 3)
+                {
+                    if (roll < 0.30f) bulletPattern = 3;
+                    else if (roll < 0.75f) bulletPattern = 2;
+                    else bulletPattern = 1;
+                }
+                else if (currentStage == 2)
+                {
+                    bulletPattern = (roll < 0.45f) ? 2 : 1;
+                }
+                else
+                {
+                    bulletPattern = (roll < 0.20f) ? 2 : 1;
+                }
+            }
+            else // EnemyType.Bottom
+            {
+                // 일반 졸개: 기본 단발, 고스테이지에서 2중 부채꼴 견제
+                if (currentStage >= 3)
+                {
+                    bulletPattern = (roll < 0.35f) ? 2 : 1;
+                }
+                else if (currentStage == 2)
+                {
+                    bulletPattern = (roll < 0.20f) ? 2 : 1;
+                }
+                else
+                {
+                    bulletPattern = 1;
+                }
+            }
+
+            // 패턴별 탄환 발사
+            switch (bulletPattern)
+            {
+                case 1: // 단발 (|)
+                    FireBullet(spawnPos, Vector2.down, dynamicBulletSpeed);
+                    break;
+
+                case 2: // 2중 피탄 사격 (/ \)
+                    FireBullet(spawnPos + new Vector3(-0.15f, 0, 0), Quaternion.Euler(0, 0, 14f) * Vector2.down, dynamicBulletSpeed);
+                    FireBullet(spawnPos + new Vector3(0.15f, 0, 0), Quaternion.Euler(0, 0, -14f) * Vector2.down, dynamicBulletSpeed);
+                    break;
+
+                case 3: // 3단 피탄 사격 (/ | \)
+                    FireBullet(spawnPos, Vector2.down, dynamicBulletSpeed);
+                    FireBullet(spawnPos + new Vector3(-0.2f, 0, 0), Quaternion.Euler(0, 0, 18f) * Vector2.down, dynamicBulletSpeed);
+                    FireBullet(spawnPos + new Vector3(0.2f, 0, 0), Quaternion.Euler(0, 0, -18f) * Vector2.down, dynamicBulletSpeed);
+                    break;
             }
 
             if (SoundManager.Instance != null)
@@ -434,14 +542,14 @@ namespace StarInvader
         public void FireAimedBullet(Vector3 fromPos, Vector3 targetPos)
         {
             if (enemyBulletPrefab == null) return;
-            // 돌진 중 사격도 플레이어를 직접 저격하기보다 정직하게 아래쪽으로 투하
-            float dynamicBulletSpeed = Mathf.Min(4.0f, 3.0f + (currentStage - 1) * 0.30f);
-            Vector2 dropDir = Vector2.down;
+            float dynamicBulletSpeed = Mathf.Min(4.2f, 3.0f + (currentStage - 1) * 0.25f);
+            Vector2 aimDir = (targetPos - fromPos).normalized;
+
             GameObject bObj = Instantiate(enemyBulletPrefab, fromPos, Quaternion.identity);
             Bullet bulletComp = bObj.GetComponent<Bullet>();
             if (bulletComp != null)
             {
-                bulletComp.Initialize(dropDir, dynamicBulletSpeed, true);
+                bulletComp.Initialize(aimDir, dynamicBulletSpeed, true);
             }
         }
 
@@ -450,10 +558,11 @@ namespace StarInvader
             // Stage 1은 급강하 돌진 완전 금지
             if (currentStage <= 1 || activeEnemies.Count == 0) return;
 
-            // 대열 내에 있는 적 중 1기 선정
+            // 대열 내에 있는 적 수집
             List<Enemy> candidates = new List<Enemy>();
-            foreach (var e in activeEnemies)
+            for (int i = 0; i < activeEnemies.Count; i++)
             {
+                var e = activeEnemies[i];
                 if (e != null && e.State == EnemyState.InFormation)
                 {
                     candidates.Add(e);
@@ -461,12 +570,21 @@ namespace StarInvader
             }
 
             if (candidates.Count == 0) return;
-            Enemy diver = candidates[Random.Range(0, candidates.Count)];
 
             PlayerController player = FindAnyObjectByType<PlayerController>();
             Vector3 targetPos = (player != null) ? player.transform.position : new Vector3(0, -4.0f, 0);
 
-            diver.StartDive(targetPos);
+            // 1기 출격
+            Enemy diver1 = candidates[Random.Range(0, candidates.Count)];
+            diver1.StartDive(targetPos);
+            candidates.Remove(diver1);
+
+            // Stage 3 이상에서는 35% 확률로 2기 편대 동시 급강하!
+            if (currentStage >= 3 && candidates.Count > 0 && Random.value < 0.35f)
+            {
+                Enemy diver2 = candidates[Random.Range(0, candidates.Count)];
+                diver2.StartDive(targetPos);
+            }
         }
 
         public void NotifyDiverEscaped(Enemy diver, int slotIdx)
@@ -524,7 +642,7 @@ namespace StarInvader
             Enemy newEnemy = enemyObj.GetComponent<Enemy>();
             if (newEnemy == null) newEnemy = enemyObj.AddComponent<Enemy>();
 
-            newEnemy.Setup(slot.type);
+            newEnemy.Setup(slot.type, GetHpForEnemy(slot.type, currentStage));
             newEnemy.AssignSlot(this, slot.slotIndex, slot.localOffset);
             newEnemy.OnDestroyed += HandleEnemyDestroyed;
 

@@ -437,10 +437,11 @@ namespace StarInvader
 
             if (weaponStatusText != null)
             {
-                string wpnName = playerWeaponLevel == 1 ? "기본 레이저" : (playerWeaponLevel == 2 ? "듀얼 빔" : "3방향 확산 빔");
+                string wpnName = playerWeaponLevel == 1 ? "1.단발 레이저" : (playerWeaponLevel == 2 ? "2.듀얼 빔" : "3.산탄 빔 (\\|/)");
+                string switchTip = (player != null && player.UnlockedWeaponLevel > 1) ? $" [1~{player.UnlockedWeaponLevel}키]" : "";
                 string shieldBadge = playerHasShield ? "가동중 (방어)" : "비활성";
                 string spStatus = (playerSpGauge >= 100f) ? "READY! (X키)" : $"{Mathf.FloorToInt(playerSpGauge)}%";
-                weaponStatusText.text = $"무기: {wpnName}\n보호막: {shieldBadge}\n필살기: {spStatus}";
+                weaponStatusText.text = $"무기: {wpnName}{switchTip}\n보호막: {shieldBadge}\n필살기: {spStatus}";
             }
         }
     }
