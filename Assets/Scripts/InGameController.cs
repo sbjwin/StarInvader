@@ -43,6 +43,14 @@ namespace StarInvader
         private float comboTimer = 0f;
         private Coroutine comboFadeCoroutine;
 
+        // 일시정지 및 무기 가이드 모달 UI
+        private bool isPaused = false;
+        private float savedTimeScale = 1.0f;
+        private GameObject guideModalObj;
+        private Text guideContentText;
+
+        public bool IsPaused => isPaused;
+
         private void Awake()
         {
             if (Instance == null) Instance = this;
@@ -87,6 +95,18 @@ namespace StarInvader
 
         private void Update()
         {
+            // 도움말/일시정지 토글 입력 감지 (H, P, ESC)
+            if (InputHelper.IsHelpOrPausePressed())
+            {
+                TogglePauseGuide();
+            }
+            else if (isPaused && (InputHelper.IsActionPressed() || InputHelper.IsEscapePressed()))
+            {
+                TogglePauseGuide();
+            }
+
+            if (isPaused) return; // 일시정지 상태에서는 콤보 타이머 등 게임 진행 멈춤
+
             // 콤보 타이머 관리
             if (currentCombo > 0)
             {
@@ -100,6 +120,11 @@ namespace StarInvader
 
         private void OnDestroy()
         {
+            if (isPaused)
+            {
+                Time.timeScale = 1.0f;
+            }
+
             if (player != null)
             {
                 player.OnLivesChanged -= HandleLivesChanged;
@@ -441,8 +466,148 @@ namespace StarInvader
                 string switchTip = (player != null && player.UnlockedWeaponLevel > 1) ? $" [1~{player.UnlockedWeaponLevel}키]" : "";
                 string shieldBadge = playerHasShield ? "가동중 (방어)" : "비활성";
                 string spStatus = (playerSpGauge >= 100f) ? "READY! (X키)" : $"{Mathf.FloorToInt(playerSpGauge)}%";
-                weaponStatusText.text = $"무기: {wpnName}{switchTip}\n보호막: {shieldBadge}\n필살기: {spStatus}";
+                weaponStatusText.text = $"무기: {wpnName}{switchTip}\n보호막: {shieldBadge}\n필살기: {spStatus}\n<color=#FFFF00>[힌트: H/ESC 키]</color>";
             }
+        }
+
+        public void TogglePauseGuide()
+        {
+            if (isGameOverTriggered || isStageTransitioning) return;
+
+            isPaused = !isPaused;
+
+            if (isPaused)
+            {
+                savedTimeScale = (Time.timeScale > 0f) ? Time.timeScale : 1.0f;
+                Time.timeScale = 0f;
+                EnsureGuideModalUI();
+                UpdateGuideContent();
+                if (guideModalObj != null) guideModalObj.SetActive(true);
+                if (SoundManager.Instance != null) SoundManager.Instance.PlayComboSound(1.2f);
+            }
+            else
+            {
+                Time.timeScale = (savedTimeScale > 0f) ? savedTimeScale : 1.0f;
+                if (guideModalObj != null) guideModalObj.SetActive(false);
+                if (SoundManager.Instance != null) SoundManager.Instance.PlayShootSound();
+            }
+        }
+
+        private void EnsureGuideModalUI()
+        {
+            if (guideModalObj != null) return;
+
+            Canvas canvas = Object.FindAnyObjectByType<Canvas>();
+            if (canvas == null) return;
+
+            Font mainFont = (scoreText != null) ? scoreText.font : Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+
+            // 1. 전체 반투명 딤(Dim) 배경 패널
+            guideModalObj = new GameObject("WeaponGuideModal");
+            guideModalObj.transform.SetParent(canvas.transform, false);
+
+            RectTransform rootRt = guideModalObj.AddComponent<RectTransform>();
+            rootRt.anchorMin = Vector2.zero;
+            rootRt.anchorMax = Vector2.one;
+            rootRt.offsetMin = Vector2.zero;
+            rootRt.offsetMax = Vector2.zero;
+
+            Image bgImg = guideModalObj.AddComponent<Image>();
+            bgImg.color = new Color(0f, 0f, 0f, 0.85f);
+
+            // 2. 중앙 팝업 카드 박스
+            GameObject cardObj = new GameObject("CardBox");
+            cardObj.transform.SetParent(guideModalObj.transform, false);
+
+            RectTransform cardRt = cardObj.AddComponent<RectTransform>();
+            cardRt.anchorMin = new Vector2(0.5f, 0.5f);
+            cardRt.anchorMax = new Vector2(0.5f, 0.5f);
+            cardRt.pivot = new Vector2(0.5f, 0.5f);
+            cardRt.sizeDelta = new Vector2(700f, 500f);
+
+            Image cardImg = cardObj.AddComponent<Image>();
+            cardImg.color = new Color(0.04f, 0.08f, 0.16f, 0.96f);
+
+            // 3. 타이틀 텍스트
+            GameObject titleObj = new GameObject("TitleText");
+            titleObj.transform.SetParent(cardObj.transform, false);
+            RectTransform titleRt = titleObj.AddComponent<RectTransform>();
+            titleRt.anchorMin = new Vector2(0, 1);
+            titleRt.anchorMax = new Vector2(1, 1);
+            titleRt.pivot = new Vector2(0.5f, 1);
+            titleRt.anchoredPosition = new Vector2(0, -22);
+            titleRt.sizeDelta = new Vector2(-40, 50);
+
+            Text titleText = titleObj.AddComponent<Text>();
+            titleText.font = mainFont;
+            titleText.fontSize = 24;
+            titleText.fontStyle = FontStyle.Bold;
+            titleText.alignment = TextAnchor.MiddleCenter;
+            titleText.color = new Color(0.1f, 1f, 0.9f);
+            titleText.text = "★ PAUSE : 무기 발사 힌트 & 전투 가이드 ★";
+
+            // 4. 본문 내용 텍스트
+            GameObject contentObj = new GameObject("ContentText");
+            contentObj.transform.SetParent(cardObj.transform, false);
+            RectTransform contentRt = contentObj.AddComponent<RectTransform>();
+            contentRt.anchorMin = new Vector2(0, 0);
+            contentRt.anchorMax = new Vector2(1, 1);
+            contentRt.pivot = new Vector2(0.5f, 0.5f);
+            contentRt.anchoredPosition = new Vector2(0, -10);
+            contentRt.sizeDelta = new Vector2(-60, -140);
+
+            guideContentText = contentObj.AddComponent<Text>();
+            guideContentText.font = mainFont;
+            guideContentText.fontSize = 17;
+            guideContentText.lineSpacing = 1.35f;
+            guideContentText.alignment = TextAnchor.MiddleLeft;
+            guideContentText.color = Color.white;
+
+            // 5. 하단 닫기 안내 텍스트
+            GameObject closeObj = new GameObject("CloseTipText");
+            closeObj.transform.SetParent(cardObj.transform, false);
+            RectTransform closeRt = closeObj.AddComponent<RectTransform>();
+            closeRt.anchorMin = new Vector2(0, 0);
+            closeRt.anchorMax = new Vector2(1, 0);
+            closeRt.pivot = new Vector2(0.5f, 0);
+            closeRt.anchoredPosition = new Vector2(0, 20);
+            closeRt.sizeDelta = new Vector2(-40, 40);
+
+            Text closeText = closeObj.AddComponent<Text>();
+            closeText.font = mainFont;
+            closeText.fontSize = 17;
+            closeText.fontStyle = FontStyle.Bold;
+            closeText.alignment = TextAnchor.MiddleCenter;
+            closeText.color = new Color(1f, 0.9f, 0.2f);
+            closeText.text = "▶ [H / ESC / P 키] 또는 [SPACE 키]를 누르면 게임이 재개됩니다 ◀";
+        }
+
+        private void UpdateGuideContent()
+        {
+            if (guideContentText == null) return;
+
+            int curLvl = (player != null) ? player.WeaponLevel : playerWeaponLevel;
+            int maxUnlocked = (player != null) ? player.UnlockedWeaponLevel : 1;
+
+            string wpn1Desc = (curLvl == 1) ? "<color=#00FFAA>▶ [1번 키] 단발 레이저 (현재 장착)</color>" : "   [1번 키] 단발 레이저 (정밀 정면 1발)";
+            string wpn2Desc = (maxUnlocked >= 2)
+                ? ((curLvl == 2) ? "<color=#00FFAA>▶ [2번 키] 듀얼 빔 (현재 장착)</color>" : "   [2번 키] 듀얼 빔 (좌/우 2열 평행 발사)")
+                : "   [2번 키] 듀얼 빔 <color=#888888>(P 아이템 획득 시 해금)</color>";
+            string wpn3Desc = (maxUnlocked >= 3)
+                ? ((curLvl == 3) ? "<color=#00FFAA>▶ [3번 키] 산탄 빔 \\ | / (현재 장착)</color>" : "   [3번 키] 산탄 빔 \\ | / (3방향 광역 확산)")
+                : "   [3번 키] 산탄 빔 \\ | / <color=#888888>(P 아이템 추가 획득 시 해금)</color>";
+
+            guideContentText.text =
+                $"<b>[ 🚀 실시간 무기 전환 시스템 ]</b>\n" +
+                $"{wpn1Desc}\n" +
+                $"{wpn2Desc}\n" +
+                $"{wpn3Desc}\n\n" +
+                $"💡 <b>힌트</b>: P(파워업) 아이템을 먹으면 최대 레벨이 해금되며,\n" +
+                $"   전투 중 <b>숫자 1, 2, 3 키</b>를 눌러 언제든 자유롭게 스위칭 가능!\n\n" +
+                $"<b>[ 🎮 기본 조작 안내 ]</b>\n" +
+                $"• 이동: <b>A / D</b> 또는 <b>← / →</b>  |  사격: <b>SPACE / ENTER</b>\n" +
+                $"• 필살기: <b>X / C / CTRL</b> (SP 100% 충전 시 하이퍼 빔 발사)\n" +
+                $"• 도움말/일시정지: <b>H / P / ESC</b>";
         }
     }
 }

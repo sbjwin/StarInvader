@@ -241,5 +241,37 @@ namespace StarInvader
 #endif
             return false;
         }
+
+        public static bool IsHelpOrPausePressed()
+        {
+#if ENABLE_INPUT_SYSTEM
+            try
+            {
+                if (Keyboard.current != null)
+                {
+                    if (Keyboard.current.hKey.wasPressedThisFrame ||
+                        Keyboard.current.pKey.wasPressedThisFrame ||
+                        Keyboard.current.escapeKey.wasPressedThisFrame)
+                    {
+                        return true;
+                    }
+                }
+            }
+            catch { }
+#endif
+#if ENABLE_LEGACY_INPUT_MANAGER
+            try
+            {
+                if (Input.GetKeyDown(KeyCode.H) ||
+                    Input.GetKeyDown(KeyCode.P) ||
+                    Input.GetKeyDown(KeyCode.Escape))
+                {
+                    return true;
+                }
+            }
+            catch { }
+#endif
+            return false;
+        }
     }
 }
