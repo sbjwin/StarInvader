@@ -58,6 +58,8 @@ namespace StarInvader
         private float nextShootTime = 0f;
         private float nextDiveTime = 0f;
         private Vector3 fleetAnchorPosition;
+        private float lastDropTime = -10f;
+        private const float DROP_COOLDOWN = 0.45f;
 
         private void Start()
         {
@@ -78,7 +80,7 @@ namespace StarInvader
             int stage = currentStage;
             motionTimer = 0f;
 
-            float dynamicStartY = Mathf.Max(2.4f, GameConstants.ENEMY_START_Y - (stage - 1) * 0.20f);
+            float dynamicStartY = Mathf.Max(2.8f, GameConstants.ENEMY_START_Y - (stage - 1) * 0.15f);
             float dynamicBaseSpeed = Mathf.Min(2.0f, baseSpeed + (stage - 1) * 0.08f);
 
             // [밸런스 완화] 사격 주기: Stage 1은 2.5~3.8초, Stage 4도 1.7~2.7초로 보고 피할 수 있는 템포 유지
@@ -185,8 +187,8 @@ namespace StarInvader
 
             int rows = layout.Length;
             int cols = layout[0].Length;
-            float spacingX = 0.82f;
-            float spacingY = 0.65f;
+            float spacingX = 0.65f;
+            float spacingY = 0.55f;
 
             float totalWidth = (cols - 1) * spacingX;
             float startX = -totalWidth / 2f;
@@ -258,8 +260,8 @@ namespace StarInvader
                     break;
 
                 case 3: // Stage 4+: 호흡 팽창 & 변칙 기동 (Breathing Pulse)
-                    motionOffsetY = Mathf.Sin(motionTimer * 2.2f) * 0.28f;
-                    pulseScale = 1.0f + Mathf.Sin(motionTimer * 2.6f) * 0.18f;
+                    motionOffsetY = Mathf.Sin(motionTimer * 2.2f) * 0.22f;
+                    pulseScale = 1.0f + Mathf.Sin(motionTimer * 2.6f) * 0.08f;
                     break;
             }
 
@@ -278,40 +280,68 @@ namespace StarInvader
             fleetAnchorPosition.x += deltaX;
             transform.position = fleetAnchorPosition + motionOffset;
 
-            bool hitBoundary = false;
-            bool reachedInvasionLimit = false;
+            // 2. 대열 내 적기 위치 동기화 및 외곽 경계/침략 판정용 AABB 산출 (Zero GC)
+            float minEnemyX = float.MaxValue;
+            float maxEnemyX = float.MinValue;
+            float minEnemyY = float.MaxValue;
+            bool hasFormationEnemy = false;
 
-            // 2. 대열 내 적기 위치 동기화 및 경계 판정
-            foreach (var slot in formationSlots)
+            for (int i = 0; i < formationSlots.Count; i++)
             {
+                FormationSlot slot = formationSlots[i];
                 if (slot.currentEnemy != null && slot.currentEnemy.State == EnemyState.InFormation)
                 {
+                    hasFormationEnemy = true;
                     Vector3 worldPos = fleetAnchorPosition + (slot.localOffset * pulseScale) + motionOffset;
                     slot.currentEnemy.transform.position = worldPos;
 
-                    if (moveDirection > 0 && worldPos.x >= boundaryX) hitBoundary = true;
-                    else if (moveDirection < 0 && worldPos.x <= -boundaryX) hitBoundary = true;
-
-                    if (worldPos.y <= invasionYLimit) reachedInvasionLimit = true;
+                    if (worldPos.x < minEnemyX) minEnemyX = worldPos.x;
+                    if (worldPos.x > maxEnemyX) maxEnemyX = worldPos.x;
+                    if (worldPos.y < minEnemyY) minEnemyY = worldPos.y;
                 }
             }
 
-            // 3. 경계 도달 시 방향 반전 및 하강
-            if (hitBoundary)
+            // 3. 경계 도달 시 방향 반전 및 스냅 보정 + 하강 쿨다운 적용 (연쇄 급강하 무한루프 완벽 차단)
+            if (hasFormationEnemy)
             {
-                moveDirection *= -1;
-                fleetAnchorPosition.y -= dropDistance;
-                transform.position = fleetAnchorPosition + motionOffset;
-            }
+                bool canDrop = (Time.time >= lastDropTime + DROP_COOLDOWN);
 
-            // 4. 침략 한계선 돌파 판정
-            if (reachedInvasionLimit)
-            {
-                PlayerController player = FindAnyObjectByType<PlayerController>();
-                if (player != null && player.gameObject.activeSelf)
+                if (moveDirection > 0 && maxEnemyX >= boundaryX)
                 {
-                    Debug.LogWarning("[외계인 침략 성공] 적 편대가 방어선을 돌파했습니다!");
-                    player.TakeDamage(999);
+                    moveDirection = -1;
+                    float overshot = maxEnemyX - boundaryX;
+                    fleetAnchorPosition.x -= overshot;
+
+                    if (canDrop)
+                    {
+                        fleetAnchorPosition.y -= dropDistance;
+                        lastDropTime = Time.time;
+                    }
+                    transform.position = fleetAnchorPosition + motionOffset;
+                }
+                else if (moveDirection < 0 && minEnemyX <= -boundaryX)
+                {
+                    moveDirection = 1;
+                    float overshot = -boundaryX - minEnemyX;
+                    fleetAnchorPosition.x += overshot;
+
+                    if (canDrop)
+                    {
+                        fleetAnchorPosition.y -= dropDistance;
+                        lastDropTime = Time.time;
+                    }
+                    transform.position = fleetAnchorPosition + motionOffset;
+                }
+
+                // 4. 침략 한계선 돌파 판정
+                if (minEnemyY <= invasionYLimit)
+                {
+                    PlayerController player = FindAnyObjectByType<PlayerController>();
+                    if (player != null && player.gameObject.activeSelf)
+                    {
+                        Debug.LogWarning("[외계인 침략 성공] 적 편대가 방어선을 돌파했습니다!");
+                        player.TakeDamage(999);
+                    }
                 }
             }
 
